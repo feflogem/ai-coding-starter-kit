@@ -5,6 +5,7 @@ import { ChannelInputForm } from "@/components/ChannelInputForm"
 import { VideoTable } from "@/components/VideoTable"
 import { TitleGeneratorPanel } from "@/components/TitleGeneratorPanel"
 import { ThemeToggle } from "@/components/ThemeToggle"
+import { AuthButton } from "@/components/AuthButton"
 import type { VideoResult } from "@/app/api/analyze/route"
 
 export default function Home() {
@@ -53,7 +54,10 @@ export default function Home() {
               : summary}
           </p>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <AuthButton />
+          <ThemeToggle />
+        </div>
       </div>
 
       {view === "input" ? (
