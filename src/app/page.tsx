@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { AuthModal } from "@/components/AuthModal"
@@ -38,16 +39,46 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white">
 
+      {/* Nav */}
+      <nav className="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center">
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <span className="font-semibold text-sm tracking-tight">Viral Tracker</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <Link href="/anleitung" className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+            Anleitung
+          </Link>
+          <button
+            onClick={() => { setModalMode("login"); setModalOpen(true) }}
+            className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            Anmelden
+          </button>
+          <Button
+            size="sm"
+            onClick={() => { setModalMode("signup"); setModalOpen(true) }}
+            className="bg-violet-600 hover:bg-violet-700 text-white border-0 text-sm"
+          >
+            Kostenlos starten
+          </Button>
+        </div>
+      </nav>
+
       {/* Hero */}
-      <section className="max-w-4xl mx-auto px-4 pt-24 pb-20 text-center">
+      <section className="max-w-4xl mx-auto px-4 pt-16 pb-20 text-center">
         <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-violet-50 dark:bg-violet-950 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800 mb-7">
-          Viral Video Tracker + Channel Analysis
+          Für YouTube-Creator
         </span>
         <h1 className="text-5xl sm:text-6xl font-bold tracking-tight leading-tight mb-6">
-          Lass die Daten<br />die Arbeit machen.
+          Finde was viral geht.<br />Bevor es deine Konkurrenz tut.
         </h1>
         <p className="text-xl text-gray-500 dark:text-gray-400 max-w-2xl mx-auto mb-10">
-          Finde virale Muster, analysiere Konkurrenz-Kanäle und generiere KI-Titel — alles in einem Tool für YouTube-Creator.
+          Viral Tracker zeigt dir in Sekunden, welche Videos in deiner Nische gerade durch die Decke gehen — und was sie gemeinsam haben. Damit du nicht rätst, sondern weißt.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button
@@ -55,18 +86,15 @@ export default function LandingPage() {
             onClick={() => { setModalMode("signup"); setModalOpen(true) }}
             className="text-base px-8 bg-violet-600 hover:bg-violet-700 text-white border-0"
           >
-            Jetzt kostenlos starten
+            Kostenlos ausprobieren
           </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={() => { setModalMode("login"); setModalOpen(true) }}
-            className="text-base px-8"
-          >
-            Anmelden
-          </Button>
+          <Link href="/anleitung">
+            <Button size="lg" variant="outline" className="text-base px-8 w-full sm:w-auto">
+              Wie funktioniert's?
+            </Button>
+          </Link>
         </div>
-        <p className="text-sm text-gray-400 mt-4">Keine Kreditkarte nötig · Kostenlos bis zu 3 Channels</p>
+        <p className="text-sm text-gray-400 mt-4">Kein Abo, keine Kreditkarte — sofort loslegen</p>
       </section>
 
       {/* Stats bar */}
@@ -74,8 +102,8 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto px-4 py-10 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
           {[
             { value: "< 30 Sek.", label: "bis zum ersten Ergebnis" },
-            { value: "bis zu 40", label: "Channels gleichzeitig analysieren" },
-            { value: "KI-gestützt", label: "Muster, Insights & Titelideen" },
+            { value: "bis zu 40", label: "Channels auf einmal analysieren" },
+            { value: "Claude 4", label: "Muster & Titelideen per KI" },
           ].map((s) => (
             <div key={s.label}>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{s.value}</p>
@@ -85,13 +113,46 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* For whom */}
+      <section className="max-w-4xl mx-auto px-4 py-20 text-center">
+        <h2 className="text-3xl font-bold mb-4">Für wen ist Viral Tracker?</h2>
+        <p className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto mb-12 leading-relaxed">
+          Du erstellst YouTube-Content und willst nicht jeden Tag manuell Konkurrenz-Channels durchklicken, um zu verstehen was funktioniert. Viral Tracker macht das für dich.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+          {[
+            {
+              icon: "🎯",
+              title: "Creator mit Konkurrenz",
+              desc: "Du kennst deine Nische und weißt, wer die großen Player sind — aber du verlierst Zeit damit, deren Kanäle manuell zu analysieren.",
+            },
+            {
+              icon: "📈",
+              title: "Wachstumsphase",
+              desc: "Du willst deinen Kanal skalieren und brauchst datenbasierte Entscheidungen statt Bauchgefühl beim nächsten Video-Titel.",
+            },
+            {
+              icon: "🧠",
+              title: "Content-Strategen",
+              desc: "Du planst Serien, Formate oder einen Redaktionsplan — und willst verstehen, welche Themen und Strukturen gerade wirklich performen.",
+            },
+          ].map((item) => (
+            <div key={item.title} className="bg-gray-50 dark:bg-gray-900 rounded-xl p-6 border border-gray-100 dark:border-gray-800">
+              <div className="text-2xl mb-3">{item.icon}</div>
+              <h3 className="font-semibold mb-2">{item.title}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Features */}
-      <section className="border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
+      <section className="bg-gray-50 dark:bg-gray-900 border-y border-gray-100 dark:border-gray-800">
         <div className="max-w-5xl mx-auto px-4 py-20">
           <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold mb-3">Was Viral Tracker kann</h2>
+            <h2 className="text-3xl font-bold mb-3">Alles, was du für deine Recherche brauchst</h2>
             <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-sm leading-relaxed">
-              Klar kann man Konkurrenz-Channels manuell durchforsten — aber wer hat dafür jeden Tag die Zeit? Viral Tracker automatisiert diese Recherche und gibt dir mit KI Einblicke, die du sonst gar nicht hättest.
+              Vier Werkzeuge, die zusammenspielen — von der ersten Recherche bis zum fertigen Titel.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -99,22 +160,22 @@ export default function LandingPage() {
               {
                 label: "Recherche",
                 title: "Viral Video Tracker",
-                desc: "Sieh sofort, welche Videos deiner Konkurrenz in den letzten 7–90 Tagen am stärksten performen.",
+                desc: "Welche Videos deiner Konkurrenz haben in den letzten 7 bis 365 Tagen am meisten Views gemacht? Du siehst es auf einen Blick.",
               },
               {
                 label: "KI-Analyse",
-                title: "Muster & Erkenntnisse",
-                desc: "Automatische Erkennung wiederkehrender Muster in viralen Titeln — Emotionen, Themen, Strukturen.",
+                title: "Muster erkennen",
+                desc: "Claude analysiert automatisch die viralen Titel und zeigt dir, welche Emotionen, Themen und Strukturen wiederholt auftauchen.",
               },
               {
                 label: "KI-Generierung",
                 title: "Titel Generator",
-                desc: "Claude generiert maßgeschneiderte Titelvorschläge für deinen Channel — in deiner Sprache und Nische.",
+                desc: "Auf Basis der viralen Muster generiert Claude Titelvorschläge, die zu deinem Kanal passen — nicht irgendwelche generischen Ideen.",
               },
               {
                 label: "Deep Dive",
                 title: "Competitor Analyse",
-                desc: "Verstehe die Content-Strategie eines Channels: Angles, Titelmuster und was ihn wirklich erfolgreich macht.",
+                desc: "Geh tiefer: Verstehe die gesamte Content-Strategie eines einzelnen Kanals — Angles, Titelmuster, was ihn wirklich erfolgreich macht.",
               },
             ].map((f) => (
               <div key={f.title} className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
@@ -127,62 +188,124 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section className="max-w-5xl mx-auto px-4 py-20">
-        <h2 className="text-3xl font-bold text-center mb-3">Einfache Preise</h2>
-        <p className="text-center text-gray-500 dark:text-gray-400 mb-14 text-sm">Starte kostenlos. Upgrade wenn du mehr brauchst.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      {/* How it works — preview */}
+      <section className="max-w-3xl mx-auto px-4 py-20 text-center">
+        <h2 className="text-3xl font-bold mb-3">In drei Schritten zu Ergebnissen</h2>
+        <p className="text-gray-500 dark:text-gray-400 mb-12 text-sm">Kein Setup, kein Onboarding-Marathon.</p>
+        <div className="space-y-6 text-left">
           {[
             {
-              name: "Free", price: "0€", period: "für immer",
-              features: ["Bis zu 3 Channels", "KI-Titel Generator", "Muster-Analyse", "Alle Filter"],
-              cta: "Jetzt starten", highlight: false,
+              step: "01",
+              title: "Channels hinzufügen",
+              desc: "Gib die YouTube-Kanäle deiner Konkurrenz ein — per Suche, URL oder Channel-ID. Bis zu 40 gleichzeitig.",
             },
             {
-              name: "Basic", price: "8,99€", period: "/ Monat",
-              features: ["Bis zu 10 Channels", "Competitor Analyse", "KI-Titel Generator", "Muster-Analyse", "Liste speichern"],
-              cta: "Basic starten", highlight: true,
+              step: "02",
+              title: "Analysieren",
+              desc: "Wähle den Zeitraum und Mindest-Views. Viral Tracker holt sich alle relevanten Videos und sortiert sie nach Performance.",
             },
             {
-              name: "Premium", price: "15,99€", period: "/ Monat",
-              features: ["Bis zu 40 Channels", "Competitor Analyse", "KI-Titel Generator", "Muster-Analyse", "Mehrere Listen"],
-              cta: "Premium starten", highlight: false,
+              step: "03",
+              title: "Ergebnisse nutzen",
+              desc: "Sieh die viralen Videos, lass Claude Muster erkennen und generiere direkt Titelideen für deinen eigenen Kanal.",
             },
-          ].map((plan) => (
-            <div
-              key={plan.name}
-              className={`rounded-xl border p-6 flex flex-col gap-4 ${
-                plan.highlight
-                  ? "border-violet-600 bg-violet-600 text-white"
-                  : "border-gray-200 dark:border-gray-700"
-              }`}
-            >
+          ].map((item) => (
+            <div key={item.step} className="flex gap-5 items-start">
+              <span className="text-xs font-bold text-violet-500 bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 rounded-full w-8 h-8 flex items-center justify-center shrink-0 mt-0.5">
+                {item.step}
+              </span>
               <div>
-                <p className="text-sm font-medium opacity-60 mb-1">{plan.name}</p>
-                <p className="text-4xl font-bold">{plan.price}</p>
-                <p className="text-sm opacity-60">{plan.period}</p>
+                <h3 className="font-semibold mb-1">{item.title}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{item.desc}</p>
               </div>
-              <ul className="space-y-2 text-sm flex-1">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2">
-                    <span className="opacity-70">✓</span> {f}
-                  </li>
-                ))}
-              </ul>
-              <Button
-                onClick={() => { setModalMode("signup"); setModalOpen(true) }}
-                variant={plan.highlight ? "secondary" : "outline"}
-                className={plan.highlight ? "bg-white text-violet-700 hover:bg-violet-50" : ""}
-              >
-                {plan.cta}
-              </Button>
             </div>
           ))}
         </div>
+        <div className="mt-10">
+          <Link href="/anleitung" className="text-sm text-violet-600 dark:text-violet-400 hover:underline font-medium">
+            Vollständige Anleitung lesen →
+          </Link>
+        </div>
       </section>
 
-      <footer className="border-t border-gray-100 dark:border-gray-800 py-8 text-center text-sm text-gray-400">
-        © 2026 Viral Tracker
+      {/* Pricing */}
+      <section className="bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
+        <div className="max-w-5xl mx-auto px-4 py-20">
+          <h2 className="text-3xl font-bold text-center mb-3">Transparent und fair</h2>
+          <p className="text-center text-gray-500 dark:text-gray-400 mb-14 text-sm">Starte gratis. Upgrade nur wenn du mehr brauchst.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {[
+              {
+                name: "Free", price: "0€", period: "für immer",
+                features: ["3 Channels pro Analyse", "KI-Titel Generator", "Muster-Analyse", "Alle Zeitraum-Filter"],
+                cta: "Kostenlos starten", highlight: false,
+              },
+              {
+                name: "Basic", price: "8,99€", period: "/ Monat",
+                features: ["10 Channels pro Analyse", "Competitor Analyse", "KI-Titel Generator", "Muster-Analyse", "Kanalliste speichern"],
+                cta: "Basic wählen", highlight: true,
+              },
+              {
+                name: "Premium", price: "15,99€", period: "/ Monat",
+                features: ["40 Channels pro Analyse", "Competitor Analyse", "KI-Titel Generator", "Muster-Analyse", "Mehrere Listen"],
+                cta: "Premium wählen", highlight: false,
+              },
+            ].map((plan) => (
+              <div
+                key={plan.name}
+                className={`rounded-xl border p-6 flex flex-col gap-4 ${
+                  plan.highlight
+                    ? "border-violet-600 bg-violet-600 text-white"
+                    : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950"
+                }`}
+              >
+                <div>
+                  <p className="text-sm font-medium opacity-60 mb-1">{plan.name}</p>
+                  <p className="text-4xl font-bold">{plan.price}</p>
+                  <p className="text-sm opacity-60">{plan.period}</p>
+                </div>
+                <ul className="space-y-2 text-sm flex-1">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-center gap-2">
+                      <span className="opacity-70">✓</span> {f}
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  onClick={() => { setModalMode("signup"); setModalOpen(true) }}
+                  variant={plan.highlight ? "secondary" : "outline"}
+                  className={plan.highlight ? "bg-white text-violet-700 hover:bg-violet-50" : ""}
+                >
+                  {plan.cta}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="max-w-2xl mx-auto px-4 py-24 text-center">
+        <h2 className="text-3xl font-bold mb-4">Bereit, smarter zu recherchieren?</h2>
+        <p className="text-gray-500 dark:text-gray-400 mb-8">
+          Kein Setup. Keine Kreditkarte. Einfach loslegen.
+        </p>
+        <Button
+          size="lg"
+          onClick={() => { setModalMode("signup"); setModalOpen(true) }}
+          className="text-base px-10 bg-violet-600 hover:bg-violet-700 text-white border-0"
+        >
+          Jetzt kostenlos starten
+        </Button>
+      </section>
+
+      <footer className="border-t border-gray-100 dark:border-gray-800 py-8">
+        <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-400">
+          <span>© 2026 Viral Tracker</span>
+          <div className="flex gap-6">
+            <Link href="/anleitung" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Anleitung</Link>
+          </div>
+        </div>
       </footer>
 
       <AuthModal open={modalOpen} onClose={() => setModalOpen(false)} defaultMode={modalMode} />
