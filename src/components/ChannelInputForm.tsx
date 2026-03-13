@@ -52,6 +52,8 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
   const [searched, setSearched] = useState(false)
   const [minViews, setMinViews] = useState("50000")
   const [dayRange, setDayRange] = useState("30")
+  const [customFrom, setCustomFrom] = useState("")
+  const [customTo, setCustomTo] = useState("")
   const [sortBy, setSortBy] = useState("views")
   const [error, setError] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
@@ -223,6 +225,23 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
       return
     }
 
+    const isCustom = dayRange === "custom"
+    if (isCustom && !customFrom) {
+      setError("Bitte ein Startdatum wählen.")
+      return
+    }
+
+    // Build request body
+    let analyzeDayRange = parseInt(dayRange)
+    let publishedAfter: string | undefined
+    let publishedBefore: string | undefined
+    if (isCustom) {
+      publishedAfter = new Date(customFrom).toISOString()
+      publishedBefore = customTo ? new Date(customTo + "T23:59:59").toISOString() : undefined
+      const diffMs = (publishedBefore ? new Date(publishedBefore) : new Date()).getTime() - new Date(publishedAfter).getTime()
+      analyzeDayRange = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
+    }
+
     onLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -232,7 +251,7 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
           "Content-Type": "application/json",
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
-        body: JSON.stringify({ channelIds, minViews: parsedMinViews, dayRange: parseInt(dayRange), sortBy }),
+        body: JSON.stringify({ channelIds, minViews: parsedMinViews, dayRange: analyzeDayRange, sortBy, publishedAfter, publishedBefore }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? "Ein Fehler ist aufgetreten."); return }
@@ -243,7 +262,7 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
         await supabase.from("scans").insert({
           user_id: currentUser.id,
           channels: channels.map((c) => ({ id: c.id, name: c.name })),
-          day_range: parseInt(dayRange),
+          day_range: analyzeDayRange,
           min_views: parsedMinViews,
           sort_by: sortBy,
           video_count: data.videos.length,
@@ -428,11 +447,39 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                 <SelectItem value="7">Letzte 7 Tage</SelectItem>
-                <SelectItem value="14">Letzte 14 Tage</SelectItem>
-                <SelectItem value="30">Letzte 30 Tage</SelectItem>
-                <SelectItem value="90">Letzte 90 Tage</SelectItem>
+                <SelectItem value="30">Letzter Monat</SelectItem>
+                <SelectItem value="90">Letzte 3 Monate</SelectItem>
+                <SelectItem value="365">Letztes Jahr</SelectItem>
+                <SelectItem value="custom">Benutzerdefiniert</SelectItem>
               </SelectContent>
             </Select>
+            {dayRange === "custom" && (
+              <div className="flex flex-col gap-2 pt-1">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 dark:text-gray-400 w-8 shrink-0">Von</label>
+                  <input
+                    type="date"
+                    value={customFrom}
+                    max={customTo || new Date().toISOString().split("T")[0]}
+                    onChange={(e) => setCustomFrom(e.target.value)}
+                    className="flex-1 text-sm px-2 py-1.5 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 dark:text-gray-400 w-8 shrink-0">Bis</label>
+                  <input
+                    type="date"
+                    value={customTo}
+                    min={customFrom}
+                    max={new Date().toISOString().split("T")[0]}
+                    onChange={(e) => setCustomTo(e.target.value)}
+                    placeholder="Heute"
+                    className="flex-1 text-sm px-2 py-1.5 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  />
+                </div>
+                <p className="text-xs text-gray-400 dark:text-gray-500">"Bis" leer lassen für heute.</p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

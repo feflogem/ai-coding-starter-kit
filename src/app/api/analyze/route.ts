@@ -5,8 +5,10 @@ import { getAuthUser, getChannelLimit, getTierAndMonthlyUsage, MONTHLY_LIMITS } 
 const RequestSchema = z.object({
   channelIds: z.array(z.string().min(1)).min(1).max(40),
   minViews: z.number().int().min(0).default(50000),
-  dayRange: z.number().int().min(1).max(365).default(30),
+  dayRange: z.number().int().min(1).max(1095).default(30),
   sortBy: z.enum(["views", "date"]).default("views"),
+  publishedAfter: z.string().optional(),
+  publishedBefore: z.string().optional(),
 })
 
 export type VideoResult = {
@@ -145,7 +147,7 @@ export async function POST(request: Request): Promise<NextResponse<AnalyzeRespon
     return NextResponse.json({ error: `Ungültige Anfrage: ${parsed.error.issues[0]?.message}` }, { status: 400 })
   }
 
-  const { channelIds, minViews, dayRange, sortBy } = parsed.data
+  const { channelIds, minViews, dayRange, sortBy, publishedAfter, publishedBefore } = parsed.data
   const uniqueInputs = [...new Set(channelIds.map((id) => id.trim()).filter(Boolean))]
 
   // Server-side tier + monthly scan limit
@@ -167,8 +169,10 @@ export async function POST(request: Request): Promise<NextResponse<AnalyzeRespon
     )
   }
 
-  const cutoffDate = new Date()
-  cutoffDate.setDate(cutoffDate.getDate() - dayRange)
+  const cutoffDateAfter = publishedAfter
+    ? new Date(publishedAfter)
+    : (() => { const d = new Date(); d.setDate(d.getDate() - dayRange); return d })()
+  const cutoffDateBefore = publishedBefore ? new Date(publishedBefore) : null
 
   const errors: string[] = []
   const allVideos: VideoResult[] = []
@@ -194,7 +198,8 @@ export async function POST(request: Request): Promise<NextResponse<AnalyzeRespon
 
         for (const video of videos) {
           if (video.duration < 60) continue
-          if (new Date(video.publishedAt) < cutoffDate) continue
+          if (new Date(video.publishedAt) < cutoffDateAfter) continue
+          if (cutoffDateBefore && new Date(video.publishedAt) > cutoffDateBefore) continue
           if (video.viewCount < minViews) continue
 
           allVideos.push({

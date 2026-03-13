@@ -31,6 +31,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [changing, setChanging] = useState<string | null>(null)
+  const [changeError, setChangeError] = useState<string | null>(null)
   const [filter, setFilter] = useState<"all" | "free" | "basic" | "premium">("all")
   const router = useRouter()
 
@@ -58,14 +59,20 @@ export default function AdminPage() {
 
   async function changeTier(userId: string, newTier: string) {
     setChanging(userId)
+    setChangeError(null)
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { setChanging(null); return }
-    await fetch("/api/admin/set-tier", {
+    const res = await fetch("/api/admin/set-tier", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
       body: JSON.stringify({ userId, tier: newTier }),
     })
-    setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, tier: newTier } : u))
+    if (res.ok) {
+      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, tier: newTier } : u))
+    } else {
+      const data = await res.json().catch(() => ({}))
+      setChangeError(data.error ?? `Fehler ${res.status}`)
+    }
     setChanging(null)
   }
 
@@ -102,6 +109,7 @@ export default function AdminPage() {
         </div>
 
         {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
+        {changeError && <p className="text-sm text-red-500 mb-4">Plan-Änderung fehlgeschlagen: {changeError}</p>}
 
         {loading ? (
           <div className="space-y-2">

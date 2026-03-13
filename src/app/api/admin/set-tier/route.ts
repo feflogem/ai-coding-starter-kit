@@ -26,6 +26,9 @@ export async function POST(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
+  // Ensure profile row exists (subscriptions FK references profiles.id)
+  await supabase.from("profiles").upsert({ id: userId }, { onConflict: "id", ignoreDuplicates: true })
+
   const { error } = await supabase
     .from("subscriptions")
     .upsert({ user_id: userId, tier }, { onConflict: "user_id" })
