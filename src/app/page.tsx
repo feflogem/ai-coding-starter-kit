@@ -14,11 +14,11 @@ export default function LandingPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) { setRedirecting(true); setTimeout(() => router.push("/analysen"), 500) }
+      if (data.user) { setRedirecting(true); router.replace("/analysen") }
     })
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) { setRedirecting(true); setTimeout(() => router.push("/analysen"), 600) }
+      if (session?.user) { setRedirecting(true); router.replace("/analysen") }
     })
 
     return () => listener.subscription.unsubscribe()

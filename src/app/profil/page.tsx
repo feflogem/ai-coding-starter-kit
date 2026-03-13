@@ -44,6 +44,8 @@ function ProfilPageInner() {
   const [competitorCount, setCompetitorCount] = useState(0)
   const [devTierSwitch, setDevTierSwitch] = useState<"idle" | "loading">("idle")
   const [upgradeStatus, setUpgradeStatus] = useState<"idle" | "loading">("idle")
+  const [portalStatus, setPortalStatus] = useState<"idle" | "loading">("idle")
+  const [portalError, setPortalError] = useState<string | null>(null)
 
   // Extra usage state
   const [extraUsageEnabled, setExtraUsageEnabled] = useState(false)
@@ -114,6 +116,29 @@ function ProfilPageInner() {
       if (!res.ok || !data.url) { setUpgradeStatus("idle"); return }
       window.location.href = data.url
     } catch { setUpgradeStatus("idle") }
+  }
+
+  async function handleManageSubscription() {
+    setPortalStatus("loading")
+    setPortalError(null)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setPortalStatus("idle"); return }
+    try {
+      const res = await fetch("/api/stripe/portal", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const data = await res.json()
+      if (!res.ok || !data.url) {
+        setPortalError(data.error ?? "Fehler beim Öffnen des Portals.")
+        setPortalStatus("idle")
+        return
+      }
+      window.location.href = data.url
+    } catch {
+      setPortalError("Netzwerkfehler.")
+      setPortalStatus("idle")
+    }
   }
 
   async function switchTierDev(newTier: string) {
@@ -332,11 +357,27 @@ function ProfilPageInner() {
                 </div>
               )}
               {tier !== "free" && (
-                <div className="flex gap-2 pt-2">
-                  <Button size="sm" variant="outline" className="text-red-500 border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-950">
-                    Plan kündigen
-                  </Button>
-                  <Button size="sm" variant="outline">Abonnement verwalten</Button>
+                <div className="flex flex-col gap-2 pt-2">
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleManageSubscription}
+                      disabled={portalStatus === "loading"}
+                      className="text-red-500 border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-950"
+                    >
+                      {portalStatus === "loading" ? "..." : "Plan kündigen"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleManageSubscription}
+                      disabled={portalStatus === "loading"}
+                    >
+                      {portalStatus === "loading" ? "..." : "Abonnement verwalten"}
+                    </Button>
+                  </div>
+                  {portalError && <p className="text-xs text-red-500">{portalError}</p>}
                 </div>
               )}
             </div>

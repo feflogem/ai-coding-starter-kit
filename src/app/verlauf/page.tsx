@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { AppShell } from "@/components/AppShell"
 import { supabase } from "@/lib/supabase"
 
@@ -42,7 +43,7 @@ export default function VerlaufPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) return
+      if (!data.user) { router.push("/"); return }
       const { data: scanData } = await supabase
         .from("scans")
         .select("id, channels, day_range, min_views, video_count, created_at")
@@ -74,7 +75,11 @@ export default function VerlaufPage() {
           <div className="border border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-16 text-center">
             <p className="text-gray-400 dark:text-gray-500 text-sm font-medium">Noch keine Analysen</p>
             <p className="text-xs text-gray-300 dark:text-gray-600 mt-1.5">
-              Geh zu <span className="font-medium">Analysen</span> und starte deinen ersten Scan.
+              Geh zu{" "}
+              <Link href="/analysen" className="font-medium text-violet-500 hover:text-violet-400 transition-colors">
+                Analysen
+              </Link>{" "}
+              und starte deinen ersten Scan.
             </p>
           </div>
         ) : (

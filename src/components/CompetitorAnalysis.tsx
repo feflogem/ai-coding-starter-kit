@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -84,10 +84,7 @@ export function CompetitorAnalysis() {
     setHistoryLoading(false)
   }
 
-  // Load history on first render
-  if (history === null && !historyLoading) {
-    loadHistory()
-  }
+  useEffect(() => { loadHistory() }, [])
 
   function showSaved(item: SavedAnalysis) {
     setResult(item.result)
