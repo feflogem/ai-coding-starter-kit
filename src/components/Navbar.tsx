@@ -33,6 +33,8 @@ export function Navbar() {
 
   if (isAppRoute) return null
 
+  const isAnleitung = pathname === "/anleitung"
+
   return (
     <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -44,6 +46,16 @@ export function Navbar() {
         </Link>
 
         <div className="flex items-center gap-3">
+          <Link
+            href="/anleitung"
+            className={`text-sm transition-colors ${
+              isAnleitung
+                ? "font-medium text-gray-900 dark:text-white"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            }`}
+          >
+            Anleitung
+          </Link>
           {user ? (
             <>
               {!isLanding && (

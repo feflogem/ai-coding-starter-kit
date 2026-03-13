@@ -11,27 +11,8 @@ export default function AnleitungPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white">
 
-      {/* Nav */}
-      <nav className="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <span className="font-semibold text-sm tracking-tight">Viral Tracker</span>
-        </Link>
-        <Button
-          size="sm"
-          onClick={() => setModalOpen(true)}
-          className="bg-violet-600 hover:bg-violet-700 text-white border-0 text-sm"
-        >
-          Kostenlos starten
-        </Button>
-      </nav>
-
       {/* Header */}
-      <section className="max-w-3xl mx-auto px-4 pt-14 pb-10">
+      <section className="max-w-3xl mx-auto px-4 pt-8 pb-10">
         <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-8 transition-colors">
           ← Zurück zur Startseite
         </Link>

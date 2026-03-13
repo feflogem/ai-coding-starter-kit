@@ -39,36 +39,6 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white">
 
-      {/* Nav */}
-      <nav className="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <span className="font-semibold text-sm tracking-tight">Viral Tracker</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link href="/anleitung" className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-            Anleitung
-          </Link>
-          <button
-            onClick={() => { setModalMode("login"); setModalOpen(true) }}
-            className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-          >
-            Anmelden
-          </button>
-          <Button
-            size="sm"
-            onClick={() => { setModalMode("signup"); setModalOpen(true) }}
-            className="bg-violet-600 hover:bg-violet-700 text-white border-0 text-sm"
-          >
-            Kostenlos starten
-          </Button>
-        </div>
-      </nav>
-
       {/* Hero */}
       <section className="max-w-4xl mx-auto px-4 pt-16 pb-20 text-center">
         <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-violet-50 dark:bg-violet-950 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800 mb-7">

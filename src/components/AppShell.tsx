@@ -4,13 +4,14 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { BarChart2, History, User, LogOut, Zap, ShieldCheck } from "lucide-react"
+import { BarChart2, History, User, LogOut, Zap, ShieldCheck, BookOpen } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 
 const navItems = [
   { href: "/analysen", icon: BarChart2, label: "Analysen" },
   { href: "/verlauf", icon: History, label: "Verlauf" },
   { href: "/profil", icon: User, label: "Profil" },
+  { href: "/anleitung", icon: BookOpen, label: "Anleitung" },
 ]
 
 export function AppShell({ children }: { children: React.ReactNode }) {
