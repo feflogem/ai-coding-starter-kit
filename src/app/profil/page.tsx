@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { AppShell } from "@/components/AppShell"
@@ -31,7 +31,7 @@ function nextResetDate() {
   return d.toLocaleDateString("de-DE", { day: "numeric", month: "long" })
 }
 
-export default function ProfilPage() {
+function ProfilPageInner() {
   const [user, setUser] = useState<User | null>(null)
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
   const [youtubeChannel, setYoutubeChannel] = useState("")
@@ -531,5 +531,13 @@ export default function ProfilPage() {
         </div>
       </div>
     </AppShell>
+  )
+}
+
+export default function ProfilPage() {
+  return (
+    <Suspense>
+      <ProfilPageInner />
+    </Suspense>
   )
 }
