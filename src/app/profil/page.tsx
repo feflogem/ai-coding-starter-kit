@@ -475,8 +475,8 @@ function ProfilPageInner() {
                     </button>
                   </p>
                 </div>
-                <Button size="sm" variant="outline">
-                  Zusatznutzung kaufen
+                <Button size="sm" variant="outline" disabled title="Bald verfügbar">
+                  Bald verfügbar
                 </Button>
               </div>
             </div>

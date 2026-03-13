@@ -25,10 +25,41 @@ type GenerateResponse =
   | { suggestions: TitleSuggestion[] }
   | { error: string }
 
+async function resolveChannelIdFromInput(input: string, apiKey: string): Promise<string | null> {
+  let handle = input.trim()
+  // Extract handle/ID from YouTube URL
+  if (handle.includes("youtube.com")) {
+    try {
+      const url = new URL(handle.startsWith("http") ? handle : `https://${handle}`)
+      const parts = url.pathname.split("/").filter(Boolean)
+      const atPart = parts.find((p) => p.startsWith("@"))
+      if (atPart) handle = atPart
+      else {
+        const idx = parts.findIndex((p) => ["channel", "c", "user"].includes(p))
+        if (idx !== -1) handle = parts[idx + 1] ?? handle
+      }
+    } catch { /* keep as-is */ }
+  }
+  if (handle.startsWith("UC")) return handle // already a channel ID
+  // Resolve @handle
+  const q = handle.startsWith("@") ? handle : `@${handle}`
+  const url = new URL("https://www.googleapis.com/youtube/v3/channels")
+  url.searchParams.set("part", "id")
+  url.searchParams.set("forHandle", q)
+  url.searchParams.set("key", apiKey)
+  const res = await fetch(url.toString())
+  if (!res.ok) return null
+  const data = await res.json()
+  return data.items?.[0]?.id ?? null
+}
+
 async function fetchChannelTopVideos(
-  channelId: string,
+  channelInput: string,
   apiKey: string
 ): Promise<Array<{ title: string; viewCount: number }>> {
+  const channelId = await resolveChannelIdFromInput(channelInput, apiKey)
+  if (!channelId) return []
+
   const channelUrl = new URL("https://www.googleapis.com/youtube/v3/channels")
   channelUrl.searchParams.set("part", "contentDetails")
   channelUrl.searchParams.set("id", channelId)

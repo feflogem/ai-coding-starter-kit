@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -332,7 +333,7 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
         {!user && atLimit && (
           <p className="text-xs text-gray-400 dark:text-gray-500">
             Maximal 3 Channels ohne Anmeldung.{" "}
-            <span className="underline cursor-pointer">Anmelden</span> für bis zu 40.
+            <Link href="/" className="underline hover:text-gray-600 dark:hover:text-gray-300">Anmelden</Link> für bis zu 40.
           </p>
         )}
       </div>

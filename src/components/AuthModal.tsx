@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -32,6 +32,15 @@ export function AuthModal({ open, onClose, defaultMode = "signup" }: AuthModalPr
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+
+  // Reset state whenever modal is opened or defaultMode changes
+  useEffect(() => {
+    if (open) {
+      setMode(defaultMode)
+      setError(null)
+      setSuccess(null)
+    }
+  }, [open, defaultMode])
 
   async function handleGoogleSignIn() {
     setGoogleLoading(true)
