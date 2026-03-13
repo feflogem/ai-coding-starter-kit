@@ -133,7 +133,7 @@ export function VideoTable({
                   # <SortIcon col="rank" />
                 </TableHead>
                 <TableHead className="text-gray-500 dark:text-gray-400">Titel</TableHead>
-                <TableHead className="text-gray-500 dark:text-gray-400 w-28">Channel</TableHead>
+                <TableHead className="text-gray-500 dark:text-gray-400 w-44">Channel</TableHead>
                 <TableHead
                   className="text-gray-500 dark:text-gray-400 text-right cursor-pointer select-none w-16"
                   onClick={() => handleSort("viewCount")}
@@ -197,7 +197,7 @@ export function VideoTable({
                         target="_blank"
                         rel="noopener noreferrer"
                         title={video.title}
-                        className="text-gray-900 dark:text-white hover:text-gray-600 dark:hover:text-gray-300 block truncate"
+                        className="text-gray-900 dark:text-white hover:text-gray-600 dark:hover:text-gray-300 block"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {video.title}

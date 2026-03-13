@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Navbar } from "@/components/Navbar";
 
 export const metadata: Metadata = {
   title: "Viral Tracker",
@@ -15,7 +16,10 @@ export default function RootLayout({
   return (
     <html lang="de" suppressHydrationWarning>
       <body className="antialiased bg-white dark:bg-gray-950 text-gray-900 dark:text-white min-h-screen">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <Navbar />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

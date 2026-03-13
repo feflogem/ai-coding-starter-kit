@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import Anthropic from "@anthropic-ai/sdk"
+import { getAuthUser } from "@/lib/auth-server"
 
 const InspirationVideoSchema = z.object({
   videoId: z.string(),
@@ -28,7 +29,6 @@ async function fetchChannelTopVideos(
   channelId: string,
   apiKey: string
 ): Promise<Array<{ title: string; viewCount: number }>> {
-  // Get uploads playlist
   const channelUrl = new URL("https://www.googleapis.com/youtube/v3/channels")
   channelUrl.searchParams.set("part", "contentDetails")
   channelUrl.searchParams.set("id", channelId)
@@ -40,7 +40,6 @@ async function fetchChannelTopVideos(
   const playlistId = channelData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads
   if (!playlistId) return []
 
-  // Get video IDs
   const playlistUrl = new URL("https://www.googleapis.com/youtube/v3/playlistItems")
   playlistUrl.searchParams.set("part", "contentDetails")
   playlistUrl.searchParams.set("playlistId", playlistId)
@@ -55,7 +54,6 @@ async function fetchChannelTopVideos(
   )
   if (videoIds.length === 0) return []
 
-  // Get video details
   const videosUrl = new URL("https://www.googleapis.com/youtube/v3/videos")
   videosUrl.searchParams.set("part", "snippet,statistics,contentDetails")
   videosUrl.searchParams.set("id", videoIds.join(","))
@@ -67,57 +65,53 @@ async function fetchChannelTopVideos(
 
   return (videosData.items ?? [])
     .filter((item: { contentDetails: { duration: string } }) => {
-      // Exclude Shorts
       const dur = item.contentDetails.duration
       const match = dur.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
       if (!match) return false
-      const seconds =
-        parseInt(match[1] ?? "0") * 3600 +
-        parseInt(match[2] ?? "0") * 60 +
-        parseInt(match[3] ?? "0")
+      const seconds = parseInt(match[1] ?? "0") * 3600 + parseInt(match[2] ?? "0") * 60 + parseInt(match[3] ?? "0")
       return seconds >= 60
     })
     .map((item: { snippet: { title: string }; statistics: { viewCount?: string } }) => ({
       title: item.snippet.title,
       viewCount: parseInt(item.statistics.viewCount ?? "0"),
     }))
-    .sort(
-      (
-        a: { viewCount: number },
-        b: { viewCount: number }
-      ) => b.viewCount - a.viewCount
-    )
+    .sort((a: { viewCount: number }, b: { viewCount: number }) => b.viewCount - a.viewCount)
     .slice(0, 10)
 }
 
 export async function POST(request: Request): Promise<NextResponse<GenerateResponse>> {
+  // Auth check — title generation requires login
+  const user = await getAuthUser(request)
+  if (!user) {
+    return NextResponse.json({ error: "Nicht autorisiert. Bitte einloggen." }, { status: 401 })
+  }
+
   const youtubeApiKey = process.env.YOUTUBE_API_KEY
   const anthropicApiKey = process.env.ANTHROPIC_API_KEY
 
   if (!youtubeApiKey) {
-    return NextResponse.json({ error: "YouTube API key not configured" }, { status: 500 })
+    return NextResponse.json({ error: "YouTube API-Key nicht konfiguriert" }, { status: 500 })
   }
   if (!anthropicApiKey) {
-    return NextResponse.json({ error: "Anthropic API key not configured" }, { status: 500 })
+    return NextResponse.json({ error: "Anthropic API-Key nicht konfiguriert" }, { status: 500 })
   }
 
   let body: unknown
   try {
     body = await request.json()
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+    return NextResponse.json({ error: "Ungültiger Request-Body" }, { status: 400 })
   }
 
   const parsed = RequestSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json(
-      { error: `Invalid request: ${parsed.error.issues[0]?.message}` },
+      { error: `Ungültige Anfrage: ${parsed.error.issues[0]?.message}` },
       { status: 400 }
     )
   }
 
   const { ownChannelId, inspirationVideos } = parsed.data
-
   const ownTopVideos = await fetchChannelTopVideos(ownChannelId, youtubeApiKey)
 
   const ownChannelContext =
@@ -128,49 +122,49 @@ export async function POST(request: Request): Promise<NextResponse<GenerateRespo
       : "Keine eigenen Videos gefunden — generiere ohne Channel-Kontext."
 
   const inspirationContext = inspirationVideos
-    .map(
-      (v, i) =>
-        `${i + 1}. "${v.title}" von ${v.channelTitle} (${(v.viewCount / 1000).toFixed(0)}K Views)`
-    )
+    .map((v, i) => `${i + 1}. "${v.title}" von ${v.channelTitle} (${(v.viewCount / 1000).toFixed(0)}K Views)`)
     .join("\n")
 
-  const prompt = `Du bist ein erfahrener YouTube-Titel-Stratege im Royal/Celebrity Gossip Bereich. Du kennst die Dynamiken der royalen Familie genau und weißt, welche Geschichten realistisch und glaubwürdig klingen.
+  const prompt = `You are an expert YouTube title strategist. Your job is to transfer viral title structures from competitor channels to the user's own channel — matching their topic, style, and language.
 
-## Eigener Channel — Top-Performer:
+## Own Channel — Top Performers:
 ${ownChannelContext}
 
-## Virale Inspiration-Videos (Vorlagen):
+## Viral Inspiration Videos (from competitor channels):
 ${inspirationContext}
 
-## Deine Aufgabe:
-Erstelle pro Inspirations-Titel 1-2 neue Titel-Variationen für den eigenen Channel.
+## Your Task:
+Create 1-2 new title variations per inspiration title, adapted to the own channel.
 
-## WICHTIGE REGELN:
+## CRITICAL RULES:
 
-### 1. Kontext-Plausibilität ist Pflicht
-Bevor du eine Komponente tauschst, frage dich: "Macht diese Geschichte in der realen Welt Sinn?"
-- ✅ "King Charles Hands FINAL AUTHORITY To William" → William übernimmt Macht = realistisch
-- ❌ "King Charles Hands FINAL AUTHORITY To Charlotte" → Ein Kind übernimmt königliche Autorität = absurd, niemals verwenden
+### 1. Detect and match the own channel's language
+Look at the titles of the own channel's top performers and identify the language they use (English, German, Spanish, etc.).
+ALL generated titles MUST be written in that exact same language. Never switch languages.
+If no own channel videos are available, use the language of the inspiration videos.
 
-### 2. Erlaubte Tausch-Typen (nur wenn kontextuell sinnvoll):
-- **Person tauschen**: Nur wenn die neue Person dieselbe Rolle plausibel übernehmen kann (z.B. William ↔ Harry, Meghan ↔ Kate)
-- **Ereignis/Skandal tauschen**: Das Ereignis durch ein anderes ersetzen, das zur Person passt
-- **Adjektiv/Intensität tauschen**: z.B. "FINAL" → "SHOCKING", "SECRET" → "HIDDEN"
-- **Handlung tauschen**: Die Aktion durch eine ähnliche ersetzen (z.B. "Hands Authority" → "Strips Power")
+### 2. Match the own channel's topic
+Analyze the own channel's top performers and identify the niche (Food, Gaming, Fitness, Finance, etc.).
+All generated titles must fit that niche — never keep competitor-specific topics.
 
-### 3. Passe an den eigenen Channel an:
-Nutze die Top-Performer des eigenen Channels als Hinweis, welche Personen und Themen besser ankommen. Wenn der eigene Channel gut mit jüngeren Royals performt, bevorzuge diese — aber nur wenn es kontextuell Sinn ergibt.
+### 3. Keep the structure, swap the content
+Take the emotional structure of the inspiration title (e.g. "X does Y and everyone is shocked") but fill it with content from the own channel's niche and language.
 
-### 4. Stil: Reißerisch aber glaubwürdig
-Die Titel sollen clickbait-ig und gossip-y sein, aber die Geschichte dahinter muss sich realistisch anfühlen. Jemand der den Titel liest soll denken "oh, das könnte wirklich passieren" — nicht "das ergibt keinen Sinn".
+### 4. Allowed adaptations:
+- **Topic/subject swap**: Replace with a relevant topic from the own channel's niche
+- **Keep emotional triggers**: e.g. "SHOCKING", "SECRET", "NEVER BEFORE SEEN" — but translate them to the channel's language
+- **Language**: Always match the own channel's language
 
-## Ausgabe (JSON):
-Antworte NUR mit einem JSON-Array, kein weiterer Text:
+### 5. Plausibility check
+The generated title must make sense and be relevant to the own channel's audience.
+
+## Output (JSON):
+Reply ONLY with a JSON array, no other text:
 [
   {
-    "title": "Der neue generierte Titel",
-    "inspirationTitle": "Der originale Vorlage-Titel",
-    "swappedComponent": "Was wurde getauscht und warum ist es plausibel, z.B. 'William → Harry: Beide sind potenzielle Thronerben, Machtverlust-Narrative passen zu Harry'"
+    "title": "The new generated title",
+    "inspirationTitle": "The original template title",
+    "swappedComponent": "What was adapted"
   }
 ]`
 
@@ -189,18 +183,23 @@ Antworte NUR mit einem JSON-Array, kein weiterer Text:
     return NextResponse.json({ error: `Claude API Fehler: ${msg}` }, { status: 500 })
   }
 
-  const rawText = message.content[0].type === "text" ? message.content[0].text : ""
+  // Safe access to content
+  const firstBlock = message.content[0]
+  if (!firstBlock || firstBlock.type !== "text") {
+    return NextResponse.json({ error: "Unerwartete Antwort von Claude" }, { status: 500 })
+  }
+  const rawText = firstBlock.text
 
   let suggestions: TitleSuggestion[]
   try {
-    // Strip markdown code blocks if present
     const stripped = rawText.replace(/```(?:json)?\n?/g, "").trim()
     const jsonMatch = stripped.match(/\[[\s\S]*\]/)
     if (!jsonMatch) {
-      console.error("No JSON array found. Raw response:", rawText)
-      throw new Error("No JSON array found in response")
+      console.error("Kein JSON-Array gefunden. Antwort:", rawText)
+      throw new Error("Kein JSON-Array in der Antwort gefunden")
     }
     suggestions = JSON.parse(jsonMatch[0])
+    if (!Array.isArray(suggestions)) throw new Error("Antwort ist kein Array")
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error("JSON parse error:", msg, "Raw:", rawText)

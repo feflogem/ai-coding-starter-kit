@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
+import { getAuthUser, getChannelLimit, getTierAndMonthlyUsage, MONTHLY_LIMITS } from "@/lib/auth-server"
 
 const RequestSchema = z.object({
-  channelIds: z.array(z.string().min(1)).min(1).max(10),
+  channelIds: z.array(z.string().min(1)).min(1).max(40),
   minViews: z.number().int().min(0).default(50000),
   dayRange: z.number().int().min(1).max(365).default(30),
   sortBy: z.enum(["views", "date"]).default("views"),
@@ -24,29 +25,16 @@ type AnalyzeResponse =
   | { videos: VideoResult[]; totalChannels: number; errors: string[] }
   | { error: string }
 
-// Resolve URL, handle, or raw ID to a YouTube channel ID
-// Supports: UCxxxx, @handle, youtube.com/@handle, youtube.com/channel/UCxxxx
 async function resolveChannelId(input: string, apiKey: string): Promise<string | null> {
   const trimmed = input.trim()
-
-  // Extract from URL
   try {
     const url = new URL(trimmed)
     const pathParts = url.pathname.split("/").filter(Boolean)
     if (pathParts[0] === "channel" && pathParts[1]) return pathParts[1]
-    if (pathParts[0]?.startsWith("@")) {
-      return resolveHandle(pathParts[0], apiKey)
-    }
-  } catch {
-    // Not a URL — continue
-  }
-
-  // @handle without URL
+    if (pathParts[0]?.startsWith("@")) return resolveHandle(pathParts[0], apiKey)
+  } catch { /* not a URL */ }
   if (trimmed.startsWith("@")) return resolveHandle(trimmed, apiKey)
-
-  // Already a channel ID (UC...)
   if (trimmed.startsWith("UC")) return trimmed
-
   return null
 }
 
@@ -55,21 +43,16 @@ async function resolveHandle(handle: string, apiKey: string): Promise<string | n
   url.searchParams.set("part", "id")
   url.searchParams.set("forHandle", handle)
   url.searchParams.set("key", apiKey)
-
   const res = await fetch(url.toString())
   if (!res.ok) return null
   const data = await res.json()
   return data.items?.[0]?.id ?? null
 }
 
-// ISO 8601 duration (e.g. PT4M13S) → seconds
 function parseDuration(duration: string): number {
   const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
   if (!match) return 0
-  const hours = parseInt(match[1] ?? "0")
-  const minutes = parseInt(match[2] ?? "0")
-  const seconds = parseInt(match[3] ?? "0")
-  return hours * 3600 + minutes * 60 + seconds
+  return parseInt(match[1] ?? "0") * 3600 + parseInt(match[2] ?? "0") * 60 + parseInt(match[3] ?? "0")
 }
 
 async function fetchUploadsPlaylistId(
@@ -80,14 +63,11 @@ async function fetchUploadsPlaylistId(
   url.searchParams.set("part", "contentDetails,snippet,statistics")
   url.searchParams.set("id", channelId)
   url.searchParams.set("key", apiKey)
-
   const res = await fetch(url.toString())
   if (!res.ok) return null
-
   const data = await res.json()
   const item = data.items?.[0]
   if (!item) return null
-
   return {
     playlistId: item.contentDetails.relatedPlaylists.uploads,
     channelTitle: item.snippet.title,
@@ -102,91 +82,91 @@ function calcViralityScore(viewCount: number, subscriberCount: number, published
   return Math.round((viewCount / subscriberCount) * decay * 100) / 100
 }
 
-async function fetchPlaylistVideoIds(
-  playlistId: string,
-  apiKey: string,
-  maxResults = 25
-): Promise<string[]> {
+async function fetchPlaylistVideoIds(playlistId: string, apiKey: string, maxResults = 25): Promise<string[]> {
   const url = new URL("https://www.googleapis.com/youtube/v3/playlistItems")
   url.searchParams.set("part", "contentDetails")
   url.searchParams.set("playlistId", playlistId)
   url.searchParams.set("maxResults", String(maxResults))
   url.searchParams.set("key", apiKey)
-
   const res = await fetch(url.toString())
   if (!res.ok) return []
-
   const data = await res.json()
-  return (data.items ?? []).map(
-    (item: { contentDetails: { videoId: string } }) =>
-      item.contentDetails.videoId
-  )
+  return (data.items ?? []).map((item: { contentDetails: { videoId: string } }) => item.contentDetails.videoId)
 }
 
-async function fetchVideoDetails(
-  videoIds: string[],
-  apiKey: string
-): Promise<
-  Array<{
-    id: string
-    title: string
-    channelId: string
-    channelTitle: string
-    viewCount: number
-    publishedAt: string
-    duration: number
-  }>
-> {
+async function fetchVideoDetails(videoIds: string[], apiKey: string): Promise<Array<{
+  id: string; title: string; channelId: string; channelTitle: string; viewCount: number; publishedAt: string; duration: number
+}>> {
   const url = new URL("https://www.googleapis.com/youtube/v3/videos")
   url.searchParams.set("part", "snippet,statistics,contentDetails")
   url.searchParams.set("id", videoIds.join(","))
   url.searchParams.set("key", apiKey)
-
   const res = await fetch(url.toString())
   if (!res.ok) return []
-
   const data = await res.json()
-  return (data.items ?? []).map(
-    (item: {
-      id: string
-      snippet: { title: string; channelId: string; channelTitle: string; publishedAt: string }
-      statistics: { viewCount?: string }
-      contentDetails: { duration: string }
-    }) => ({
-      id: item.id,
-      title: item.snippet.title,
-      channelId: item.snippet.channelId,
-      channelTitle: item.snippet.channelTitle,
-      viewCount: parseInt(item.statistics.viewCount ?? "0"),
-      publishedAt: item.snippet.publishedAt,
-      duration: parseDuration(item.contentDetails.duration),
-    })
-  )
+  return (data.items ?? []).map((item: {
+    id: string
+    snippet: { title: string; channelId: string; channelTitle: string; publishedAt: string }
+    statistics: { viewCount?: string }
+    contentDetails: { duration: string }
+  }) => ({
+    id: item.id,
+    title: item.snippet.title,
+    channelId: item.snippet.channelId,
+    channelTitle: item.snippet.channelTitle,
+    viewCount: parseInt(item.statistics.viewCount ?? "0"),
+    publishedAt: item.snippet.publishedAt,
+    duration: parseDuration(item.contentDetails.duration),
+  }))
 }
 
 export async function POST(request: Request): Promise<NextResponse<AnalyzeResponse>> {
+  // Auth check
+  const token = request.headers.get("Authorization")?.replace("Bearer ", "").trim()
+  const user = token ? await getAuthUser(request) : null
+  if (!user || !token) {
+    return NextResponse.json({ error: "Nicht autorisiert. Bitte einloggen." }, { status: 401 })
+  }
+
   const apiKey = process.env.YOUTUBE_API_KEY
   if (!apiKey) {
-    return NextResponse.json({ error: "YouTube API key not configured" }, { status: 500 })
+    return NextResponse.json({ error: "YouTube API-Key nicht konfiguriert" }, { status: 500 })
   }
 
   let body: unknown
   try {
     body = await request.json()
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+    return NextResponse.json({ error: "Ungültiger Request-Body" }, { status: 400 })
   }
 
   const parsed = RequestSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: `Invalid request: ${parsed.error.issues[0]?.message}` },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: `Ungültige Anfrage: ${parsed.error.issues[0]?.message}` }, { status: 400 })
   }
 
   const { channelIds, minViews, dayRange, sortBy } = parsed.data
   const uniqueInputs = [...new Set(channelIds.map((id) => id.trim()).filter(Boolean))]
+
+  // Server-side tier + monthly scan limit
+  const [channelLimit, { tier, scansThisMonth }] = await Promise.all([
+    getChannelLimit(user.id, token),
+    getTierAndMonthlyUsage(user.id, token),
+  ])
+  if (uniqueInputs.length > channelLimit) {
+    return NextResponse.json(
+      { error: `Dein Plan erlaubt maximal ${channelLimit} Channels pro Analyse. Upgrade für mehr.` },
+      { status: 403 }
+    )
+  }
+  const scanLimit = MONTHLY_LIMITS[tier]?.scans ?? 3
+  if (scanLimit !== Infinity && scansThisMonth >= scanLimit) {
+    return NextResponse.json(
+      { error: `Du hast dein monatliches Limit von ${scanLimit} Kanal-Analysen erreicht. Upgrade für mehr.` },
+      { status: 429 }
+    )
+  }
+
   const cutoffDate = new Date()
   cutoffDate.setDate(cutoffDate.getDate() - dayRange)
 
@@ -203,7 +183,7 @@ export async function POST(request: Request): Promise<NextResponse<AnalyzeRespon
         }
         const channelInfo = await fetchUploadsPlaylistId(channelId, apiKey)
         if (!channelInfo) {
-          errors.push(`Channel not found: ${channelId}`)
+          errors.push(`Channel nicht gefunden: ${channelId}`)
           return
         }
 
@@ -213,13 +193,8 @@ export async function POST(request: Request): Promise<NextResponse<AnalyzeRespon
         const videos = await fetchVideoDetails(videoIds, apiKey)
 
         for (const video of videos) {
-          // Filter out Shorts (< 60 seconds)
           if (video.duration < 60) continue
-
-          // Filter by date range
           if (new Date(video.publishedAt) < cutoffDate) continue
-
-          // Filter by min views
           if (video.viewCount < minViews) continue
 
           allVideos.push({
@@ -235,12 +210,11 @@ export async function POST(request: Request): Promise<NextResponse<AnalyzeRespon
           })
         }
       } catch {
-        errors.push(`Error fetching channel: ${input}`)
+        errors.push(`Fehler beim Laden von Channel: ${input}`)
       }
     })
   )
 
-  // Sort results
   allVideos.sort((a, b) => {
     if (sortBy === "views") return b.viewCount - a.viewCount
     return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
