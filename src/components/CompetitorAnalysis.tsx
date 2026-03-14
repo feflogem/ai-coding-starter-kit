@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { CompetitorChat } from "@/components/CompetitorChat"
 
 interface CompetitorResult {
   channelName: string
@@ -139,7 +140,9 @@ export function CompetitorAnalysis() {
 
       {/* Result */}
       {result && !loading && (
-        <div className="max-w-3xl space-y-6 animate-in fade-in duration-300">
+        <div className="flex gap-6 items-start animate-in fade-in duration-300">
+          {/* Left: analysis */}
+          <div className="flex-1 min-w-0 space-y-6">
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">{result.channelName}</h2>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">{result.summary}</p>
@@ -196,6 +199,14 @@ export function CompetitorAnalysis() {
               </div>
             </div>
           )}
+          </div>
+
+          {/* Right: chat */}
+          <div className="w-80 shrink-0 sticky top-6">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden flex flex-col" style={{ height: "520px" }}>
+              <CompetitorChat competitorContext={result} />
+            </div>
+          </div>
         </div>
       )}
 

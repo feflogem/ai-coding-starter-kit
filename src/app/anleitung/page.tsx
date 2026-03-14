@@ -2,8 +2,29 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AuthModal } from "@/components/AuthModal"
+
+function AccordionItem({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-5 py-4 text-left bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+      >
+        <span className="font-semibold text-sm text-gray-900 dark:text-white">{title}</span>
+        <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="px-5 pb-5 pt-1 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 text-sm text-gray-600 dark:text-gray-300 leading-relaxed space-y-3">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function AnleitungPage() {
   const [modalOpen, setModalOpen] = useState(false)
@@ -16,210 +37,188 @@ export default function AnleitungPage() {
         <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-8 transition-colors">
           ← Zurück zur Startseite
         </Link>
-        <span className="inline-block text-xs font-semibold tracking-widest uppercase text-violet-500 mb-4">Anleitung</span>
+        <span className="inline-block text-xs font-semibold tracking-widest uppercase text-violet-500 mb-4">How To & FAQ</span>
         <h1 className="text-4xl font-bold mb-4 leading-tight">Wie du Viral Tracker<br />am besten nutzt</h1>
         <p className="text-lg text-gray-500 dark:text-gray-400 leading-relaxed">
-          Viral Tracker ist ein Recherche-Tool für YouTube-Creator. Hier erfährst du, für wen es gemacht ist, wie die einzelnen Funktionen zusammenspielen — und wie du in unter fünf Minuten zu deinem ersten Insight kommst.
+          Alles was du wissen musst — von der ersten Recherche bis zum fertigen Titel. Klicke auf einen Abschnitt um ihn zu öffnen.
         </p>
       </section>
 
-      {/* For whom */}
-      <section className="max-w-3xl mx-auto px-4 py-10 border-t border-gray-100 dark:border-gray-800">
-        <h2 className="text-2xl font-bold mb-6">Für wen ist das Tool?</h2>
-        <div className="space-y-4">
-          {[
-            {
-              title: "YouTube-Creator, die wachsen wollen",
-              desc: "Du bist nicht neu auf YouTube, aber du fragst dich regelmäßig: Warum performt dieses Video so viel besser als das andere? Was machen die erfolgreichen Kanäle in meiner Nische anders? Viral Tracker gibt dir Antworten — auf Basis echter Daten, nicht Meinungen.",
-            },
-            {
-              title: "Creator in wettbewerbsintensiven Nischen",
-              desc: "Je mehr Kanäle es in deiner Nische gibt, desto wichtiger ist es zu verstehen, was den Unterschied macht. Fitness, Finance, Gaming, Business, Food — in jeder Nische gibt es virale Muster. Die musst du nicht selbst entdecken.",
-            },
-            {
-              title: "Content-Strategen und Agenturen",
-              desc: "Du betreust mehrere Kanäle oder planst Redaktionspläne? Viral Tracker gibt dir einen strukturierten Überblick über ganze Nischen — ohne stundenlange Handarbeit.",
-            },
-          ].map((item) => (
-            <div key={item.title} className="p-5 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
-              <h3 className="font-semibold mb-2">{item.title}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{item.desc}</p>
+      {/* Know Your Competitor — prominent callout */}
+      <section className="max-w-3xl mx-auto px-4 pb-10">
+        <div className="bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800 rounded-xl p-6">
+          <div className="flex items-start gap-4">
+            <span className="text-2xl shrink-0">🎯</span>
+            <div>
+              <h2 className="font-bold text-violet-900 dark:text-violet-200 mb-2">Voraussetzung: Know Your Competitor</h2>
+              <p className="text-sm text-violet-800 dark:text-violet-300 leading-relaxed mb-3">
+                Viral Tracker funktioniert am besten, wenn du deine Konkurrenten bereits kennst. Das Tool ist kein Entdeckungs-Tool — es ist ein Analyse-Tool. Wer sind die 5–10 Kanäle in deiner Nische, die du regelmäßig im Auge behältst? Die solltest du kennen, bevor du anfängst.
+              </p>
+              <p className="text-sm text-violet-800 dark:text-violet-300 leading-relaxed">
+                <span className="font-semibold">Die Suchfunktion im Tool</span> kann dir helfen, Kanäle anhand eines ungefähren Namens zu finden — zum Beispiel wenn du weißt, dass ein Kanal "Finance Bros" oder so ähnlich heißt. Sie ist aber kein Ersatz für eine eigene Nischen-Recherche. Empfehlung: Schreib dir einmalig 5–10 Konkurrenz-Kanäle raus, dann kannst du das Tool sofort vollständig nutzen.
+              </p>
             </div>
-          ))}
-        </div>
-        <div className="mt-6 p-5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl">
-          <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">
-            <span className="font-semibold">Was Viral Tracker nicht ist:</span> Kein automatischer Upload-Bot, kein SEO-Tool für Beschreibungen oder Tags, und kein Ersatz für eigene Kreativität. Es ist ein Recherchetool — du entscheidest, was du damit machst.
-          </p>
-        </div>
-      </section>
-
-      {/* Feature 1: Viral Tracker */}
-      <section className="max-w-3xl mx-auto px-4 py-10 border-t border-gray-100 dark:border-gray-800">
-        <div className="flex items-center gap-3 mb-6">
-          <span className="text-xs font-semibold tracking-widest uppercase text-violet-500 bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 px-2.5 py-1 rounded-full">Funktion 1</span>
-          <h2 className="text-2xl font-bold">Viral Video Tracker</h2>
-        </div>
-        <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-          Das ist der Kern des Tools. Du gibst Konkurrenz-Kanäle ein, wählst einen Zeitraum — und siehst sofort, welche Videos davon am stärksten performen.
-        </p>
-
-        <div className="space-y-5">
-          <div>
-            <h3 className="font-semibold mb-2 flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-violet-600 text-white text-xs flex items-center justify-center font-bold shrink-0">1</span>
-              Channels hinzufügen
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed ml-8">
-              Suche nach Kanalnamen oder gib direkt eine YouTube-URL, einen @Handle oder eine Channel-ID ein. Du kannst mehrere Kanäle gleichzeitig analysieren — im Free-Plan bis zu 3, im Premium-Plan bis zu 40. Tipp: Analysiere immer mehrere Kanäle auf einmal, um eine größere Datenmenge zu bekommen.
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold mb-2 flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-violet-600 text-white text-xs flex items-center justify-center font-bold shrink-0">2</span>
-              Zeitraum und Filter wählen
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed ml-8">
-              Wähle, wie weit zurück du schauen willst: letzte 7 Tage, letzten Monat, 3 Monate, letztes Jahr — oder einen eigenen Zeitraum mit Datepicker. Setze außerdem Mindestabrufe, um kleine Videos herauszufiltern. 50.000 Views ist ein guter Startpunkt; in kleineren Nischen kannst du das auf 10.000 senken.
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold mb-2 flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-violet-600 text-white text-xs flex items-center justify-center font-bold shrink-0">3</span>
-              Ergebnisse lesen
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed ml-8">
-              Die Ergebnistabelle zeigt dir alle Videos mit Views, Datum und dem sogenannten Virality Score. Der Score setzt Views ins Verhältnis zur Channelgröße und dem Alter des Videos — ein Video mit 500.000 Views von einem Kanal mit 1 Mio. Abonnenten ist weniger beeindruckend als dasselbe Ergebnis von einem 50K-Kanal.
-            </p>
           </div>
         </div>
-
-        <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Tipp</p>
-          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-            Klicke auf einen Spaltenkopf, um nach Views oder Datum zu sortieren. Per Checkbox kannst du bis zu 5 Videos als Inspiration für den Titel-Generator markieren.
-          </p>
-        </div>
       </section>
 
-      {/* Feature 2: Pattern Analysis */}
-      <section className="max-w-3xl mx-auto px-4 py-10 border-t border-gray-100 dark:border-gray-800">
-        <div className="flex items-center gap-3 mb-6">
-          <span className="text-xs font-semibold tracking-widest uppercase text-violet-500 bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 px-2.5 py-1 rounded-full">Funktion 2</span>
-          <h2 className="text-2xl font-bold">Muster & Erkenntnisse</h2>
-        </div>
-        <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
-          Nach einer Analyse läuft automatisch eine KI-Auswertung aller viralen Titel. Claude erkennt, was die Videos gemeinsam haben — und fasst es in klare Muster zusammen.
-        </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-          Typische Erkenntnisse sind z.B.: "Alle Top-Videos nutzen eine konkrete Zahl im Titel", "Emotionale Trigger wie Schock oder Überraschung tauchen in 7 von 10 Titeln auf" oder "Der Channel setzt stark auf persönliche Erfahrungsberichte als Einstieg." Das sind Insights, die du beim manuellen Durchscrollen leicht übersiehst.
-        </p>
-      </section>
+      {/* How To Section */}
+      <section className="max-w-3xl mx-auto px-4 pb-10">
+        <h2 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">How To</h2>
+        <div className="space-y-2">
 
-      {/* Feature 3: Title Generator */}
-      <section className="max-w-3xl mx-auto px-4 py-10 border-t border-gray-100 dark:border-gray-800">
-        <div className="flex items-center gap-3 mb-6">
-          <span className="text-xs font-semibold tracking-widest uppercase text-violet-500 bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 px-2.5 py-1 rounded-full">Funktion 3</span>
-          <h2 className="text-2xl font-bold">KI-Titel Generator</h2>
-        </div>
-        <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
-          Markiere aus den Ergebnissen 1–5 Videos als Inspiration. Dann generiert Claude Titelideen für deinen Kanal — basierend auf den viralen Strukturen, aber angepasst auf deine Nische und Sprache.
-        </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
-          Damit das gut funktioniert, hinterlege deinen eigenen YouTube-Kanal im Profil. Claude analysiert dann deine eigenen Top-Videos und versteht, welche Themen und welchen Stil dein Kanal hat — und generiert Ideen, die wirklich passen.
-        </p>
-        <div className="p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">So bekommst du die besten Ergebnisse</p>
-          <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1.5">
-            <li className="flex items-start gap-2"><span className="text-violet-500 shrink-0 mt-0.5">→</span> Wähle 3–5 Videos aus, nicht nur eines</li>
-            <li className="flex items-start gap-2"><span className="text-violet-500 shrink-0 mt-0.5">→</span> Hinterlege deinen Channel-Handle im Profil</li>
-            <li className="flex items-start gap-2"><span className="text-violet-500 shrink-0 mt-0.5">→</span> Nutze Videos aus verschiedenen Kanälen als Inspiration für mehr Vielfalt</li>
-            <li className="flex items-start gap-2"><span className="text-violet-500 shrink-0 mt-0.5">→</span> Die generierten Titel sind Vorlagen — passe sie noch auf dein spezifisches Video-Thema an</li>
-          </ul>
-        </div>
-      </section>
-
-      {/* Feature 4: Competitor Analyse */}
-      <section className="max-w-3xl mx-auto px-4 py-10 border-t border-gray-100 dark:border-gray-800">
-        <div className="flex items-center gap-3 mb-6">
-          <span className="text-xs font-semibold tracking-widest uppercase text-violet-500 bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 px-2.5 py-1 rounded-full">Funktion 4</span>
-          <h2 className="text-2xl font-bold">Competitor Analyse</h2>
-        </div>
-        <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
-          Für einen Deep Dive in einen einzelnen Kanal. Gib einen Channel-Namen oder URL ein und erhalte eine strukturierte Analyse: Was sind die wiederkehrenden Content-Angles? Welche Titelstrukturen nutzt der Kanal? Was sind seine stärksten Videos?
-        </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-          Die Competitor Analyse eignet sich besonders gut, um neue Nischen zu erkunden oder einen Kanal zu verstehen, bevor du anfängst, ähnliche Inhalte zu erstellen. Alle Analysen werden gespeichert und können jederzeit erneut aufgerufen werden.
-        </p>
-      </section>
-
-      {/* Workflow tip */}
-      <section className="max-w-3xl mx-auto px-4 py-10 border-t border-gray-100 dark:border-gray-800">
-        <h2 className="text-2xl font-bold mb-6">Empfohlener Workflow</h2>
-        <div className="space-y-4">
-          {[
-            { step: "Wöchentlich", title: "Viral Video Tracker laufen lassen", desc: "Analysiere 5–10 Konkurrenz-Kanäle für die letzten 30 Tage. Sieh, was sich seit der letzten Woche verändert hat — welche Themen gerade hochkommen." },
-            { step: "Bei Planung", title: "Titel Generator nutzen", desc: "Wenn du ein neues Video planst, wähle 3–5 aktuelle Top-Videos als Inspiration und generiere Titelideen. Dann wähle das Beste aus und schärfe es nach." },
-            { step: "Beim Start eines neuen Themas", title: "Competitor Analyse machen", desc: "Wenn du eine neue Nische oder ein neues Format ausprobieren willst, analysiere zuerst 2–3 der erfolgreichsten Kanäle in diesem Bereich." },
-          ].map((item) => (
-            <div key={item.step} className="flex gap-4 items-start p-5 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
-              <span className="text-xs font-semibold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 px-2.5 py-1 rounded-full shrink-0 mt-0.5 whitespace-nowrap">
-                {item.step}
-              </span>
-              <div>
-                <h3 className="font-semibold mb-1">{item.title}</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{item.desc}</p>
-              </div>
+          <AccordionItem title="Schritt 1 — Channels hinzufügen" defaultOpen>
+            <p>
+              Gehe zu <strong>Analysen → Viral Video Tracker</strong>. Suche nach Kanalnamen oder gib direkt eine YouTube-URL, einen @Handle oder eine Channel-ID ein.
+            </p>
+            <p>
+              Tipp: Analysiere immer mehrere Kanäle gleichzeitig (mindestens 3–5) — je mehr Datenpunkte, desto besser die Muster-Erkennung. Im Free-Plan sind bis zu 3 Kanäle möglich, im Premium-Plan bis zu 40.
+            </p>
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3 text-amber-800 dark:text-amber-300 text-xs">
+              <strong>Zur Suchfunktion:</strong> Sie funktioniert gut, wenn du den ungefähren Kanalnamen kennst. Für exakte Channel-IDs (UC...) oder vollständige URLs ist direkte Eingabe zuverlässiger.
             </div>
-          ))}
+          </AccordionItem>
+
+          <AccordionItem title="Schritt 2 — Zeitraum & Filter einstellen">
+            <p>
+              Wähle den Zeitraum: letzte 7 Tage, letzter Monat, 3 Monate, letztes Jahr — oder einen eigenen Zeitraum per Datepicker.
+            </p>
+            <p>
+              <strong>Mindestabrufe:</strong> 50.000 Views ist ein guter Startpunkt. In kleineren Nischen kannst du auf 10.000–20.000 runter. Zu niedrig führt zu vielen irrelevanten Ergebnissen.
+            </p>
+            <p>
+              <strong>Sortierung:</strong> "Nach Views" zeigt die absoluten Top-Performer. "Nach Datum" zeigt die neuesten Videos zuerst — gut um aktuelle Trends zu sehen.
+            </p>
+          </AccordionItem>
+
+          <AccordionItem title="Schritt 3 — Ergebnisse lesen">
+            <p>
+              Die Tabelle zeigt Views, Erscheinungsdatum und den <strong>Virality Score</strong>. Der Score setzt Views ins Verhältnis zur Channelgröße und dem Alter — ein 500K-Video von einem 50K-Kanal ist viraler als dasselbe Ergebnis von einem 5M-Kanal.
+            </p>
+            <p>
+              Klicke auf einen Spaltenkopf zum Sortieren. Klicke auf einen Videotitel um das Video direkt auf YouTube zu öffnen.
+            </p>
+          </AccordionItem>
+
+          <AccordionItem title="Schritt 4 — Muster & Erkenntnisse">
+            <p>
+              Läuft automatisch nach jeder Analyse. Claude analysiert alle viralen Titel und zeigt dir, was sie gemeinsam haben — Emotionen, Strukturen, Themen, wiederkehrende Personen oder Ereignisse.
+            </p>
+            <p>
+              Diese Erkenntnisse sind der eigentliche Wert: Du siehst auf einen Blick, was in deiner Nische funktioniert — ohne jedes Video einzeln zu lesen.
+            </p>
+          </AccordionItem>
+
+          <AccordionItem title="Schritt 5 — Titel Generator">
+            <p>
+              Markiere 1–5 Videos per Checkbox als Inspiration. Dann generiert Claude Titelideen für deinen Kanal — basierend auf den viralen Strukturen, angepasst an deine Nische und Sprache.
+            </p>
+            <p>
+              <strong>Wichtig:</strong> Hinterlege deinen Channel-Handle im Profil. Claude analysiert dann deine eigenen Top-Videos und versteht deinen Stil — die Ergebnisse werden deutlich besser.
+            </p>
+            <p>
+              Die generierten Titel sind Vorlagen. Passe sie noch auf dein konkretes Video-Thema an, bevor du sie verwendest.
+            </p>
+          </AccordionItem>
+
+          <AccordionItem title="Schritt 6 — Competitor Analyse (Deep Dive)">
+            <p>
+              Für einen vollständigen Einblick in einen einzelnen Kanal. Gib einen @Handle oder URL ein und erhalte: Content-Angles, Titelmuster, Top-Videos und eine Zusammenfassung der Channel-Strategie.
+            </p>
+            <p>
+              <strong>Neu:</strong> Nach der Analyse erscheint rechts ein KI-Assistent. Du kannst direkt Fragen stellen — zum Beispiel wie du die Erkenntnisse für deinen eigenen Channel nutzen kannst, welche Angles übertragbar sind oder welche Themen du als nächstes aufgreifen solltest.
+            </p>
+            <p>
+              Alle Competitor-Analysen werden gespeichert und können jederzeit wieder geöffnet werden.
+            </p>
+          </AccordionItem>
+
+        </div>
+      </section>
+
+      {/* Recommended Workflow */}
+      <section className="max-w-3xl mx-auto px-4 pb-10">
+        <h2 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Empfohlener Workflow</h2>
+        <div className="space-y-2">
+
+          <AccordionItem title="Wöchentliche Routine">
+            <p>
+              Analysiere deine 5–10 Konkurrenz-Kanäle für die letzten 30 Tage. Sieh, welche Videos neu in die Top-Liste eingestiegen sind. Notiere Themen, die mehrfach auftauchen — das sind Trends in deiner Nische.
+            </p>
+          </AccordionItem>
+
+          <AccordionItem title="Vor einem neuen Video">
+            <p>
+              Führe einen frischen Scan durch. Wähle 3–5 Top-Performer als Inspiration und generiere Titelideen. Wähle den besten Vorschlag und passe ihn auf dein konkretes Thema an.
+            </p>
+          </AccordionItem>
+
+          <AccordionItem title="Neue Nische erkunden">
+            <p>
+              Mach zuerst eine Competitor Analyse der 2–3 stärksten Kanäle in der neuen Nische. Verstehe die Angles und Titelmuster, bevor du anfängst zu produzieren. Frag den KI-Assistenten, was die Erkenntnisse für dich bedeuten.
+            </p>
+          </AccordionItem>
+
         </div>
       </section>
 
       {/* FAQ */}
-      <section className="max-w-3xl mx-auto px-4 py-10 border-t border-gray-100 dark:border-gray-800">
-        <h2 className="text-2xl font-bold mb-6">Häufige Fragen</h2>
-        <div className="space-y-5">
-          {[
-            {
-              q: "Warum sehe ich manchmal keine Ergebnisse?",
-              a: "Das passiert, wenn der Kanal im gewählten Zeitraum keine Videos mit den gesetzten Mindestabrufen hatte. Probiere einen längeren Zeitraum oder niedrigere Mindestabrufe.",
-            },
-            {
-              q: "Wie frisch sind die Daten?",
-              a: "Viral Tracker fragt die YouTube Data API in Echtzeit an. Die Daten sind immer aktuell zum Zeitpunkt deiner Analyse.",
-            },
-            {
-              q: "Warum unterscheidet sich das Ergebnis wenn ich denselben Scan nochmals mache?",
-              a: "Views ändern sich kontinuierlich. Ein Video das gestern 80.000 Views hatte kann heute über deinem Filter von 50.000 liegen — oder darunter.",
-            },
-            {
-              q: "Was ist der Virality Score?",
-              a: "Der Score setzt die Views eines Videos ins Verhältnis zur Channelgröße (Abonnenten) und dem Alter des Videos. So siehst du schnell, welche Videos überproportional gut performen — unabhängig davon, wie groß der Kanal ist.",
-            },
-            {
-              q: "Werden meine Channel-Listen gespeichert?",
-              a: "Ja, wenn du eingeloggt bist. Du kannst die Liste über den Button 'Liste speichern' explizit abspeichern. Im Free-Plan wird eine Liste gespeichert, im Basic- und Premium-Plan mehrere.",
-            },
-          ].map((item) => (
-            <div key={item.q} className="border-b border-gray-100 dark:border-gray-800 pb-5 last:border-0">
-              <h3 className="font-semibold mb-2">{item.q}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{item.a}</p>
-            </div>
-          ))}
+      <section className="max-w-3xl mx-auto px-4 pb-20">
+        <h2 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Häufige Fragen</h2>
+        <div className="space-y-2">
+
+          <AccordionItem title="Warum sehe ich manchmal keine Ergebnisse?">
+            <p>
+              Der Kanal hat im gewählten Zeitraum keine Videos mit den gesetzten Mindestabrufen veröffentlicht. Probiere einen längeren Zeitraum (z.B. 90 Tage statt 30) oder senke die Mindestabrufe.
+            </p>
+          </AccordionItem>
+
+          <AccordionItem title="Wie aktuell sind die Daten?">
+            <p>
+              Viral Tracker fragt die YouTube Data API in Echtzeit an. Die Daten sind immer aktuell zum Zeitpunkt deiner Analyse — es gibt keinen Cache.
+            </p>
+          </AccordionItem>
+
+          <AccordionItem title="Was ist der Virality Score?">
+            <p>
+              Der Score setzt die Views eines Videos ins Verhältnis zur Channelgröße (Abonnenten) und dem Alter des Videos. Ein Video mit 200K Views von einem Kanal mit 20K Abonnenten ist viraler als dasselbe Ergebnis bei 2 Millionen Abonnenten. So siehst du, welche Videos wirklich überperformt haben.
+            </p>
+          </AccordionItem>
+
+          <AccordionItem title="Werden meine Channel-Listen gespeichert?">
+            <p>
+              Ja, wenn du eingeloggt bist. Klicke auf "Liste speichern" um die aktuelle Auswahl zu sichern. Im Free-Plan wird eine Liste gespeichert. Die Kanalliste wird beim nächsten Besuch automatisch geladen.
+            </p>
+          </AccordionItem>
+
+          <AccordionItem title="Warum unterscheiden sich Ergebnisse beim selben Scan?">
+            <p>
+              Views ändern sich kontinuierlich. Ein Video das gestern knapp unter deinem Filter lag, kann heute drüber liegen — und umgekehrt. Das ist normal und kein Fehler.
+            </p>
+          </AccordionItem>
+
+          <AccordionItem title="Die Suchfunktion findet meinen Kanal nicht — was tun?">
+            <p>
+              Versuche den genauen @Handle direkt einzugeben (z.B. <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">@KanalName</code>) oder füge die vollständige YouTube-URL ein. Sehr neue Kanäle oder Kanäle mit wenigen Videos werden von der YouTube-Suche manchmal nicht gefunden.
+            </p>
+          </AccordionItem>
+
         </div>
       </section>
 
       {/* CTA */}
-      <section className="max-w-2xl mx-auto px-4 py-20 text-center">
-        <h2 className="text-2xl font-bold mb-3">Bereit loszulegen?</h2>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">Kostenlos, sofort, kein Kreditkarte.</p>
-        <Button
-          size="lg"
-          onClick={() => setModalOpen(true)}
-          className="text-base px-10 bg-violet-600 hover:bg-violet-700 text-white border-0"
-        >
-          Jetzt kostenlos starten
-        </Button>
+      <section className="bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
+        <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+          <h2 className="text-2xl font-bold mb-3">Bereit loszulegen?</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">Kostenlos starten — kein Abo, keine Kreditkarte.</p>
+          <Button
+            size="lg"
+            onClick={() => setModalOpen(true)}
+            className="text-base px-10 bg-violet-600 hover:bg-violet-700 text-white border-0"
+          >
+            Jetzt kostenlos starten
+          </Button>
+        </div>
       </section>
 
       <footer className="border-t border-gray-100 dark:border-gray-800 py-8">
