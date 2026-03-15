@@ -53,7 +53,7 @@ export function AuthModal({ open, onClose, defaultMode = "signup" }: AuthModalPr
     setError(null)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: { redirectTo: `${window.location.origin}/analysen` },
     })
     if (error) {
       setError("Google-Anmeldung fehlgeschlagen.")

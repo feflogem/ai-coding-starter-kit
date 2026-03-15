@@ -196,6 +196,12 @@ function PublicContent({ onSignup }: { onSignup: () => void }) {
             </p>
           </AccordionItem>
 
+          <AccordionItem title="Faceless-Channel-Betreiber">
+            <p>
+              Ohne eigene Persönlichkeit vor der Kamera hängt dein Erfolg noch stärker von Titeln, Themen und Timing ab. Viral Tracker zeigt dir datenbasiert, welche Muster in deiner Nische funktionieren — damit jedes Video maximale Reichweite hat.
+            </p>
+          </AccordionItem>
+
           <AccordionItem title="Content-Strategen und Agenturen">
             <p>
               Du betreust mehrere Kanäle oder planst Content-Strategien? Analysiere bis zu 40 Konkurrenz-Kanäle gleichzeitig, erkenne Muster und generiere datenbasierte Titelvorschläge.
@@ -310,16 +316,25 @@ export default function AnleitungPage() {
     supabase.auth.getUser().then(({ data }) => setLoggedIn(!!data.user))
   }, [])
 
-  if (loggedIn === null) return <div className="min-h-screen bg-white dark:bg-gray-950" />
-
-  if (loggedIn) {
-    return <AppShell><LoggedInContent /></AppShell>
+  // Not logged in → show public content
+  if (loggedIn === false) {
+    return (
+      <>
+        <PublicContent onSignup={() => setModalOpen(true)} />
+        <AuthModal open={modalOpen} onClose={() => setModalOpen(false)} defaultMode="signup" />
+      </>
+    )
   }
 
+  // Logged in or still checking (null) → render inside AppShell so sidebar stays visible
+  // during navigation. AppShell handles its own auth redirect if user turns out not logged in.
   return (
-    <>
-      <PublicContent onSignup={() => setModalOpen(true)} />
-      <AuthModal open={modalOpen} onClose={() => setModalOpen(false)} defaultMode="signup" />
-    </>
+    <AppShell>
+      {loggedIn ? <LoggedInContent /> : (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="w-5 h-5 rounded-full border-2 border-gray-200 dark:border-gray-700 border-t-violet-600 animate-spin" />
+        </div>
+      )}
+    </AppShell>
   )
 }

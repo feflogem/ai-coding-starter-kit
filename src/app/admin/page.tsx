@@ -43,26 +43,22 @@ export default function AdminPage() {
   const router = useRouter()
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) { router.push("/"); return }
-      if (data.user.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL) {
-        router.push("/analysen"); return
-      }
-      fetchUsers(data.user)
-    })
+    // No separate auth check — AppShell already redirects unauthenticated users.
+    // The API validates admin access server-side; if forbidden, show error.
+    async function fetchUsers() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const res = await fetch("/api/admin/users", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (res.status === 403) { router.push("/analysen"); return }
+      if (!res.ok) { setError("Fehler beim Laden der Nutzer."); setLoading(false); return }
+      const data = await res.json()
+      setUsers(data.users)
+      setLoading(false)
+    }
+    fetchUsers()
   }, [router])
-
-  async function fetchUsers(user: { email?: string }) {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    const res = await fetch("/api/admin/users", {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    })
-    if (!res.ok) { setError("Fehler beim Laden der Nutzer."); setLoading(false); return }
-    const data = await res.json()
-    setUsers(data.users)
-    setLoading(false)
-  }
 
   async function changeTier(userId: string, newTier: string) {
     setChanging(userId)

@@ -89,12 +89,17 @@ export default function LandingPage() {
         <p className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto mb-12 leading-relaxed">
           Du erstellst YouTube-Content und willst nicht jeden Tag manuell Konkurrenz-Channels durchklicken, um zu verstehen was funktioniert. Viral Tracker macht das für dich.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
           {[
             {
               icon: "🎯",
               title: "Creator mit Konkurrenz",
               desc: "Du kennst deine Nische und weißt, wer die großen Player sind — aber du verlierst Zeit damit, deren Kanäle manuell zu analysieren.",
+            },
+            {
+              icon: "👻",
+              title: "Faceless Channels",
+              desc: "Ohne eigene Persönlichkeit vor der Kamera zählen Titel, Themen und Muster noch mehr. Viral Tracker zeigt dir datenbasiert, was in deiner Nische funktioniert — damit jedes Video sitzt.",
             },
             {
               icon: "📈",

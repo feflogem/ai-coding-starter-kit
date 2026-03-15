@@ -37,7 +37,7 @@ interface SearchResult {
 }
 
 const STORAGE_KEY = "viral-tracker-channels"
-const TIER_LIMITS: Record<string, number> = { free: 3, basic: 10, premium: 40 }
+const TIER_LIMITS: Record<string, number> = { free: 10, basic: 10, premium: 40 }
 
 function formatSubs(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -66,6 +66,10 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
   const [subsChannels, setSubsChannels] = useState<{ channelId: string; name: string; thumbnail: string | null; subscriberCount?: number }[]>([])
   const [subsLoading, setSubsLoading] = useState(false)
   const [subsError, setSubsError] = useState<string | null>(null)
+  // YouTube channel profile setup (inline)
+  const [ownChannel, setOwnChannel] = useState<string | null | undefined>(undefined) // undefined = loading, null = not set
+  const [ownChannelInput, setOwnChannelInput] = useState("")
+  const [ownChannelSaving, setOwnChannelSaving] = useState(false)
 
   const atLimit = channels.length >= channelLimit
 
@@ -80,6 +84,8 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
       if (data.user) {
         loadFromSupabase(data.user.id)
         loadTierLimit(data.user.id)
+        supabase.from("profiles").select("youtube_channel_id").eq("id", data.user.id).single()
+          .then(({ data: p }) => setOwnChannel(p?.youtube_channel_id || null))
       } else {
         loadFromLocalStorage()
         setChannelLimit(3)
@@ -357,8 +363,49 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
       ? { id: extractHandle(query.trim()), name: extractHandle(query.trim()) }
       : null
 
+  async function saveOwnChannel() {
+    if (!user || !ownChannelInput.trim()) return
+    setOwnChannelSaving(true)
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch(`/api/validate-channel?q=${encodeURIComponent(ownChannelInput.trim())}`, {
+      headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+    })
+    const data = await res.json()
+    const channelId = data.valid ? data.channelId : ownChannelInput.trim()
+    await supabase.from("profiles").update({ youtube_channel_id: channelId, updated_at: new Date().toISOString() }).eq("id", user.id)
+    setOwnChannel(channelId)
+    setOwnChannelInput("")
+    setOwnChannelSaving(false)
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+
+      {/* ── Own channel hint ── */}
+      {user && ownChannel === null && (
+        <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 rounded-lg px-4 py-3 space-y-2">
+          <p className="text-xs text-violet-700 dark:text-violet-300 leading-relaxed">
+            <strong>Tipp:</strong> Hinterlege deinen eigenen Channel — der KI-Titelgenerator passt Vorschläge dann auf deinen Stil an.
+          </p>
+          <div className="flex gap-2">
+            <input
+              value={ownChannelInput}
+              onChange={(e) => setOwnChannelInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), saveOwnChannel())}
+              placeholder="@DeinChannel"
+              className="flex-1 text-xs px-2.5 py-1.5 rounded-md border border-violet-200 dark:border-violet-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-violet-500"
+            />
+            <button
+              type="button"
+              onClick={saveOwnChannel}
+              disabled={ownChannelSaving || !ownChannelInput.trim()}
+              className="text-xs px-3 py-1.5 rounded-md bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40 transition-colors font-medium shrink-0"
+            >
+              {ownChannelSaving ? "..." : "Speichern"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Filter ── */}
       <div className="space-y-3">

@@ -5,8 +5,8 @@ import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { useTheme } from "next-themes"
 import { supabase } from "@/lib/supabase"
-import { BarChart2, History, LogOut, Zap, ShieldCheck, BookOpen, HelpCircle, Settings, Moon, Sun, Send } from "lucide-react"
-import type { User as SupabaseUser } from "@supabase/supabase-js"
+import { BarChart2, History, LogOut, Zap, ShieldCheck, BookOpen, HelpCircle, Moon, Sun, Send } from "lucide-react"
+import { useUser } from "@/components/UserProvider"
 import { SettingsModal } from "@/components/SettingsModal"
 import { ThemeToggle } from "@/components/ThemeToggle"
 
@@ -124,21 +124,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const { theme, setTheme } = useTheme()
-  const [user, setUser] = useState<SupabaseUser | null>(null)
-  const [tier, setTier] = useState<string>("free")
+  const { user, tier, loading } = useUser()
   const [helpOpen, setHelpOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
 
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) { router.push("/"); return }
-      setUser(data.user)
-      supabase.from("subscriptions").select("tier").eq("user_id", data.user.id).single()
-        .then(({ data: sub }) => { if (sub?.tier) setTier(sub.tier) })
-    })
-  }, [router])
+    if (!loading && !user) router.push("/")
+  }, [loading, user, router])
 
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? "??"
   const displayName = user?.email?.split("@")[0] ?? ""

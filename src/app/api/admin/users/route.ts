@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { getAuthUser } from "@/lib/auth-server"
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL
 
 export async function GET(request: Request) {
   const user = await getAuthUser(request)
@@ -21,15 +21,16 @@ export async function GET(request: Request) {
   if (authError) return NextResponse.json({ error: authError.message }, { status: 500 })
 
   // Fetch subscriptions + profiles + scans + token usage
-  const [{ data: subs }, { data: profiles }, { data: scanCounts }, { data: tokenRows }] = await Promise.all([
+  const [{ data: subs }, { data: profiles }, { data: scanCounts }] = await Promise.all([
     supabase.from("subscriptions").select("user_id, tier"),
     supabase.from("profiles").select("id, youtube_channel_id"),
     supabase.from("scans").select("user_id"),
-    supabase.from("token_usage").select("user_id, input_tokens, output_tokens"),
   ])
+  // token_usage table may not exist yet — query separately and ignore errors
+  const { data: tokenRows } = await supabase.from("token_usage").select("user_id, input_tokens, output_tokens")
 
-  const subMap = new Map((subs ?? []).map((s) => [s.user_id, s.tier]))
-  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.youtube_channel_id]))
+  const subMap = new Map((subs ?? []).map((s: { user_id: string; tier: string }) => [s.user_id, s.tier]))
+  const profileMap = new Map((profiles ?? []).map((p: { id: string; youtube_channel_id: string | null }) => [p.id, p.youtube_channel_id]))
   const scanCountMap = new Map<string, number>()
   for (const s of scanCounts ?? []) {
     scanCountMap.set(s.user_id, (scanCountMap.get(s.user_id) ?? 0) + 1)
