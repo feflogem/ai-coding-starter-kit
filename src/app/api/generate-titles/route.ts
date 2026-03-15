@@ -168,23 +168,26 @@ ${inspirationContext}
 
 ## Your Task:
 
-1. Analysiere den hinterlegten YouTube-Channel des Users. Was sind erfolgreiche TitelMuster/Themen (Personen/Ereignisse/etc.) auf dem Channel des Users?
+1. Analysiere den hinterlegten YouTube-Channel des Users. Was sind erfolgreiche TitelMuster/Themen (Personen/Ereignisse/etc.) auf dem Channel des Users? Identifiziere die Channel-Ausrichtung (z.B. Royal Drama, Finance, Gaming, etc.).
 
-2. Basierend auf den ausgewählten Videos bei der Videoanalyse, die der User auf Basis der Konkurrenzchannel hinterlegt hat, generiere neue Titelideen für den User, mit Potenzial für den eigenen Channel und dessen Angle.
+2. Basierend auf den ausgewählten Videos bei der Videoanalyse, die der User auf Basis der Konkurrenzchannel hinterlegt hat, generiere neue Titelideen für den User — aber NUR, wenn die Swaps inhaltlich plausibel sind.
 
-3. Nimm die Titel, die der User ausgewählt hat und verändere nur EINE Komponente daran (Adjektiv/Person/Thema).
+3. KRITISCH: Nimm die Titel, die der User ausgewählt hat und verändere nur EINE einzelne Komponente daran (Person/Adjektiv/Ereignis). Der Rest des Titels bleibt UNVERÄNDERT. Keine neuen Präfixe hinzufügen, keine Strukturen umbauen.
 
-4. Schlage Ergebnis-Titel vor, zeige was du am Originaltitel verändert hast und 3 Sätze, warum das für den Channel des Users ein vielversprechender Titel ist. Mehr nicht!
+4. Die neue Komponente muss REALISTISCHE FAKTEN widerspiegeln. Z.B. "King Charles hat ein neues Zuhause" — nur vorschlagen wenn es WAHR ist oder plausibel im Kontext des Channels. Keine erfundenen oder unsinnigen Sachverhalte.
+
+5. Schlage nur Titel vor, die für den User-Channel thematisch passen (z.B. für Royal-Drama-Channel nur Royal-bezogene Swaps).
+
+6. Für jeden Titel: zeige genau WELCHE Komponente geswappt wurde und warum der neue Titel für den Channel funktioniert (1-2 Sätze, max).
 
 ## CRITICAL RULES:
 
-- LANGUAGE: Identify the language of the own channel's top videos. ALL generated titles MUST be in that exact language. If the own channel is in English, ALL titles must be English. If German, all German. No language switching!
-- Match the own channel's topic and niche — never keep competitor-specific content
-- Change only ONE component per title (adjective, person, topic, or event) BUT it must fit thematically
-- The adapted component must make THEMATIC SENSE within the own channel's content strategy
-- Keep the emotional structure and virality pattern from the inspiration title
-- Only suggest titles that would actually work as real videos on the own channel — no forced or nonsensical combinations
-- If a component swap doesn't make thematic sense, skip it and find a title where the swap works naturally
+- LANGUAGE: Identify the language of the own channel's top videos. ALL generated titles MUST be in that exact language. No language switching!
+- PRESERVE ORIGINAL STRUCTURE: Do not add prefixes, rearrange, or rebuild the title. Change ONLY the one component.
+- ONE SWAP ONLY: Exactly one person/adjective/event changes. Everything else stays identical.
+- FACTUAL PLAUSIBILITY: The swapped component must make sense (e.g., don't claim King Charles has a new home if he doesn't)
+- CHANNEL ALIGNMENT: Only swap with content/people/topics that fit the own channel's niche
+- SKIP IF NO SENSE: If no single-component swap makes thematic sense, skip that title entirely
 - Provide a brief (1-2 sentences max) reasoning for why each suggested title fits the channel
 
 ## Output (JSON):
