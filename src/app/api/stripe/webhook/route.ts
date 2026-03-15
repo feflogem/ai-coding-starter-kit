@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
-import { createClient } from "@supabase/supabase-js"
+import { createClient, SupabaseClient } from "@supabase/supabase-js"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
 // Lazy-load supabase client on first request (not at module level)
-// This prevents "supabaseKey is required" errors during Next.js build
-let supabase: ReturnType<typeof createClient> | null = null
+// This prevents "supabaseKey is required" errors during Next.js build.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let supabase: SupabaseClient<any, any, any> | null = null
 
 function getSupabaseClient() {
   if (!supabase) {
