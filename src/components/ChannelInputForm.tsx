@@ -37,7 +37,7 @@ interface SearchResult {
 }
 
 const STORAGE_KEY = "viral-tracker-channels"
-const TIER_LIMITS: Record<string, number> = { free: 10, basic: 10, premium: 40 }
+const TIER_LIMITS: Record<string, number> = { free: 20, basic: 10, premium: 40 }
 
 function formatSubs(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
