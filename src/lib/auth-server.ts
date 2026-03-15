@@ -1,7 +1,11 @@
 import { createClient } from "@supabase/supabase-js"
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+function getSupabaseConfig() {
+  return {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  }
+}
 
 export const MONTHLY_LIMITS: Record<string, { scans: number; competitor: number }> = {
   free: { scans: 3, competitor: 1 },
@@ -13,6 +17,7 @@ export const MONTHLY_LIMITS: Record<string, { scans: number; competitor: number 
 export async function getAuthUser(request: Request) {
   const token = request.headers.get("Authorization")?.replace("Bearer ", "").trim()
   if (!token) return null
+  const { url, anonKey } = getSupabaseConfig()
   const supabase = createClient(url, anonKey)
   const { data: { user } } = await supabase.auth.getUser(token)
   return user ?? null
@@ -20,6 +25,7 @@ export async function getAuthUser(request: Request) {
 
 /** Returns the channel limit per scan for a user based on their subscription tier. */
 export async function getChannelLimit(userId: string, token: string): Promise<number> {
+  const { url, anonKey } = getSupabaseConfig()
   const supabase = createClient(url, anonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
   })
@@ -36,6 +42,7 @@ export async function getChannelLimit(userId: string, token: string): Promise<nu
 
 /** Returns the user's tier and current month's usage counts. */
 export async function getTierAndMonthlyUsage(userId: string, token: string) {
+  const { url, anonKey } = getSupabaseConfig()
   const supabase = createClient(url, anonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
   })
