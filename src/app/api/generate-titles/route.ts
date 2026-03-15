@@ -157,7 +157,7 @@ export async function POST(request: Request): Promise<NextResponse<GenerateRespo
     .map((v, i) => `${i + 1}. "${v.title}" von ${v.channelTitle} (${(v.viewCount / 1000).toFixed(0)}K Views)`)
     .join("\n")
 
-  const prompt = `You are an expert YouTube title strategist. Your job is to transfer viral title structures from competitor channels to the user's own channel — matching their topic, style, and language.
+  const prompt = `Act as a Senior Youtube Faceless Channel director with a deep understanding of virality.
 
 ## Own Channel — Top Performers:
 ${ownChannelContext}
@@ -166,29 +166,22 @@ ${ownChannelContext}
 ${inspirationContext}
 
 ## Your Task:
-Create 1-2 new title variations per inspiration title, adapted to the own channel.
+
+1. Analysiere den hinterlegten YouTube-Channel des Users. Was sind erfolgreiche TitelMuster/Themen (Personen/Ereignisse/etc.) auf dem Channel des Users?
+
+2. Basierend auf den ausgewählten Videos bei der Videoanalyse, die der User auf Basis der Konkurrenzchannel hinterlegt hat, generiere neue Titelideen für den User, mit Potenzial für den eigenen Channel und dessen Angle.
+
+3. Nimm die Titel, die der User ausgewählt hat und verändere nur EINE Komponente daran (Adjektiv/Person/Thema).
+
+4. Schlage Ergebnis-Titel vor, zeige was du am Originaltitel verändert hast und 3 Sätze, warum das für den Channel des Users ein vielversprechender Titel ist. Mehr nicht!
 
 ## CRITICAL RULES:
 
-### 1. Detect and match the own channel's language
-Look at the titles of the own channel's top performers and identify the language they use (English, German, Spanish, etc.).
-ALL generated titles MUST be written in that exact same language. Never switch languages.
-If no own channel videos are available, use the language of the inspiration videos.
-
-### 2. Match the own channel's topic
-Analyze the own channel's top performers and identify the niche (Food, Gaming, Fitness, Finance, etc.).
-All generated titles must fit that niche — never keep competitor-specific topics.
-
-### 3. Keep the structure, swap the content
-Take the emotional structure of the inspiration title (e.g. "X does Y and everyone is shocked") but fill it with content from the own channel's niche and language.
-
-### 4. Allowed adaptations:
-- **Topic/subject swap**: Replace with a relevant topic from the own channel's niche
-- **Keep emotional triggers**: e.g. "SHOCKING", "SECRET", "NEVER BEFORE SEEN" — but translate them to the channel's language
-- **Language**: Always match the own channel's language
-
-### 5. Plausibility check
-The generated title must make sense and be relevant to the own channel's audience.
+- Detect the own channel's language and write ALL titles in that language
+- Match the own channel's topic and niche — never keep competitor-specific content
+- Change only ONE component per title (adjective, person, topic, or event)
+- Keep the emotional structure and virality pattern from the inspiration title
+- Make sure the adapted title makes sense for the own channel's audience
 
 ## Output (JSON):
 Reply ONLY with a JSON array, no other text:
