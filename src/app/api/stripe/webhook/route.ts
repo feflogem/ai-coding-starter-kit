@@ -5,11 +5,19 @@ import { createClient } from "@supabase/supabase-js"
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
-// Use service role key here — webhook runs without a user session
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
+// Lazy-load supabase client on first request (not at module level)
+// This prevents "supabaseKey is required" errors during Next.js build
+let supabase: ReturnType<typeof createClient> | null = null
+
+function getSupabaseClient() {
+  if (!supabase) {
+    supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+  }
+  return supabase
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.text()
@@ -39,7 +47,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Fehlende Metadaten" }, { status: 400 })
     }
 
-    const { error } = await supabase
+    const { error } = await getSupabaseClient()
       .from("subscriptions")
       .upsert(
         {
@@ -69,7 +77,7 @@ export async function POST(req: NextRequest) {
     }
     const newTier = priceId ? (tierByPrice[priceId] ?? "free") : "free"
 
-    await supabase
+    await getSupabaseClient()
       .from("subscriptions")
       .update({ tier: newTier, updated_at: new Date().toISOString() })
       .eq("stripe_subscription_id", stripeSubscriptionId)
@@ -79,7 +87,7 @@ export async function POST(req: NextRequest) {
     const subscription = event.data.object as Stripe.Subscription
     const stripeSubscriptionId = subscription.id
 
-    const { error } = await supabase
+    const { error } = await getSupabaseClient()
       .from("subscriptions")
       .update({ tier: "free", stripe_subscription_id: null, updated_at: new Date().toISOString() })
       .eq("stripe_subscription_id", stripeSubscriptionId)
