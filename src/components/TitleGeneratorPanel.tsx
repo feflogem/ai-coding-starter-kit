@@ -213,6 +213,9 @@ export function TitleGeneratorPanel({ selectedVideos }: TitleGeneratorPanelProps
                   {copiedIndex === i ? "Kopiert!" : "Kopieren"}
                 </Button>
               </div>
+              {s.reasoning && (
+                <p className="text-gray-600 dark:text-gray-400 text-sm">{s.reasoning}</p>
+              )}
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline" className="border-gray-300 dark:border-gray-700 text-gray-400 dark:text-gray-500 text-xs">
                   Vorlage: {s.inspirationTitle}

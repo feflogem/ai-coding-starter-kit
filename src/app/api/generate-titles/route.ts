@@ -20,6 +20,7 @@ export type TitleSuggestion = {
   title: string
   inspirationTitle: string
   swappedComponent: string
+  reasoning: string
 }
 
 type GenerateResponse =
@@ -177,19 +178,23 @@ ${inspirationContext}
 
 ## CRITICAL RULES:
 
-- Detect the own channel's language and write ALL titles in that language
+- LANGUAGE: Identify the language of the own channel's top videos. ALL generated titles MUST be in that exact language. If the own channel is in English, ALL titles must be English. If German, all German. No language switching!
 - Match the own channel's topic and niche — never keep competitor-specific content
-- Change only ONE component per title (adjective, person, topic, or event)
+- Change only ONE component per title (adjective, person, topic, or event) BUT it must fit thematically
+- The adapted component must make THEMATIC SENSE within the own channel's content strategy
 - Keep the emotional structure and virality pattern from the inspiration title
-- Make sure the adapted title makes sense for the own channel's audience
+- Only suggest titles that would actually work as real videos on the own channel — no forced or nonsensical combinations
+- If a component swap doesn't make thematic sense, skip it and find a title where the swap works naturally
+- Provide a brief (1-2 sentences max) reasoning for why each suggested title fits the channel
 
 ## Output (JSON):
 Reply ONLY with a JSON array, no other text:
 [
   {
-    "title": "The new generated title",
+    "title": "The new generated title (in own channel's language)",
     "inspirationTitle": "The original template title",
-    "swappedComponent": "What was adapted"
+    "swappedComponent": "What was adapted",
+    "reasoning": "Brief explanation why this title works for the channel (max 2 sentences)"
   }
 ]`
 
