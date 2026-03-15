@@ -37,7 +37,8 @@ function ProfilPageInner() {
   const [youtubeChannel, setYoutubeChannel] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [profileStatus, setProfileStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
+  const [profileStatus, setProfileStatus] = useState<"idle" | "saving" | "saved" | "error" | "invalid">("idle")
+  const [validatedChannel, setValidatedChannel] = useState<{ title: string; thumbnail: string | null } | null>(null)
   const [passwordStatus, setPasswordStatus] = useState<"idle" | "saving" | "saved" | "error" | "mismatch">("idle")
   const [tier, setTier] = useState<string>("free")
   const [scanCount, setScanCount] = useState(0)
@@ -93,9 +94,26 @@ function ProfilPageInner() {
   async function saveProfile() {
     if (!user) return
     setProfileStatus("saving")
+    setValidatedChannel(null)
+
+    // Validate channel exists before saving
+    if (youtubeChannel.trim()) {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`/api/validate-channel?q=${encodeURIComponent(youtubeChannel.trim())}`, {
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+      })
+      const data = await res.json()
+      if (!data.valid) {
+        setProfileStatus("invalid")
+        setTimeout(() => setProfileStatus("idle"), 4000)
+        return
+      }
+      setValidatedChannel({ title: data.title, thumbnail: data.thumbnail })
+    }
+
     const { error } = await supabase
       .from("profiles")
-      .update({ youtube_channel_id: youtubeChannel, updated_at: new Date().toISOString() })
+      .update({ youtube_channel_id: youtubeChannel.trim(), updated_at: new Date().toISOString() })
       .eq("id", user.id)
     if (error) { setProfileStatus("error"); setTimeout(() => setProfileStatus("idle"), 3000); return }
     setProfileStatus("saved")
@@ -490,13 +508,20 @@ function ProfilPageInner() {
             Wird im KI-Titelgenerator als Referenz für deinen Stil verwendet.
           </p>
 
-          {youtubeChannel && (
+          {youtubeChannel && profileStatus !== "invalid" && (
             <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <svg className="w-4 h-4 text-red-500 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-              </svg>
-              <span className="text-sm text-gray-900 dark:text-white font-medium">{youtubeChannel}</span>
-              <span className="ml-auto text-xs text-green-600 dark:text-green-400 font-medium">Gespeichert</span>
+              {validatedChannel?.thumbnail && (
+                <img src={validatedChannel.thumbnail} alt="" className="w-6 h-6 rounded-full shrink-0" />
+              )}
+              {!validatedChannel?.thumbnail && (
+                <svg className="w-4 h-4 text-red-500 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+              )}
+              <span className="text-sm text-gray-900 dark:text-white font-medium truncate">
+                {validatedChannel?.title ?? youtubeChannel}
+              </span>
+              <span className="ml-auto text-xs text-green-600 dark:text-green-400 font-medium shrink-0">Gespeichert</span>
             </div>
           )}
 
@@ -516,11 +541,14 @@ function ProfilPageInner() {
               disabled={profileStatus === "saving" || isLoadingProfile}
               className="bg-violet-600 hover:bg-violet-700 text-white shrink-0"
             >
-              {profileStatus === "saving" ? "..." : profileStatus === "saved" ? "✓ Gespeichert" : "Aktualisieren"}
+              {profileStatus === "saving" ? "Prüfen..." : profileStatus === "saved" ? "✓ Gespeichert" : "Aktualisieren"}
             </Button>
           </div>
           {profileStatus === "error" && (
             <p className="text-xs text-red-500 mt-2">Fehler beim Speichern.</p>
+          )}
+          {profileStatus === "invalid" && (
+            <p className="text-xs text-red-500 mt-2">Channel nicht gefunden. Bitte @Handle oder URL prüfen.</p>
           )}
         </div>
 

@@ -20,11 +20,12 @@ export async function GET(request: Request) {
   const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers({ perPage: 200 })
   if (authError) return NextResponse.json({ error: authError.message }, { status: 500 })
 
-  // Fetch subscriptions + profiles
-  const [{ data: subs }, { data: profiles }, { data: scanCounts }] = await Promise.all([
+  // Fetch subscriptions + profiles + scans + token usage
+  const [{ data: subs }, { data: profiles }, { data: scanCounts }, { data: tokenRows }] = await Promise.all([
     supabase.from("subscriptions").select("user_id, tier"),
     supabase.from("profiles").select("id, youtube_channel_id"),
     supabase.from("scans").select("user_id"),
+    supabase.from("token_usage").select("user_id, input_tokens, output_tokens"),
   ])
 
   const subMap = new Map((subs ?? []).map((s) => [s.user_id, s.tier]))
@@ -32,6 +33,10 @@ export async function GET(request: Request) {
   const scanCountMap = new Map<string, number>()
   for (const s of scanCounts ?? []) {
     scanCountMap.set(s.user_id, (scanCountMap.get(s.user_id) ?? 0) + 1)
+  }
+  const tokenMap = new Map<string, number>()
+  for (const t of tokenRows ?? []) {
+    tokenMap.set(t.user_id, (tokenMap.get(t.user_id) ?? 0) + t.input_tokens + t.output_tokens)
   }
 
   const users = authUsers.users.map((u) => ({
@@ -42,6 +47,7 @@ export async function GET(request: Request) {
     tier: subMap.get(u.id) ?? "free",
     youtubeChannel: profileMap.get(u.id) ?? null,
     totalScans: scanCountMap.get(u.id) ?? 0,
+    totalTokens: tokenMap.get(u.id) ?? 0,
   }))
 
   return NextResponse.json({ users })

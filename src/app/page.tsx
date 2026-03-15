@@ -274,6 +274,9 @@ export default function LandingPage() {
           <span>© 2026 Viral Tracker</span>
           <div className="flex gap-6">
             <Link href="/anleitung" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Anleitung</Link>
+            <Link href="/impressum" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Impressum</Link>
+            <Link href="/datenschutz" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Datenschutz</Link>
+            <Link href="/agb" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">AGB</Link>
           </div>
         </div>
       </footer>

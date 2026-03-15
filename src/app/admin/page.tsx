@@ -13,6 +13,13 @@ interface AdminUser {
   tier: string
   youtubeChannel: string | null
   totalScans: number
+  totalTokens: number
+}
+
+function formatTokens(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`
+  return n.toString()
 }
 
 const TIER_COLORS: Record<string, string> = {
@@ -119,10 +126,11 @@ export default function AdminPage() {
           </div>
         ) : (
           <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
-            <div className="grid grid-cols-[1fr_100px_80px_80px_140px_120px] gap-3 px-5 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+            <div className="grid grid-cols-[1fr_100px_60px_80px_80px_120px_120px] gap-3 px-5 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">E-Mail</span>
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">YouTube</span>
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Scans</span>
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Tokens</span>
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Plan</span>
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Registriert</span>
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Plan ändern</span>
@@ -130,10 +138,11 @@ export default function AdminPage() {
 
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
               {filtered.map((u) => (
-                <div key={u.id} className="grid grid-cols-[1fr_100px_80px_80px_140px_120px] gap-3 px-5 py-3.5 items-center">
+                <div key={u.id} className="grid grid-cols-[1fr_100px_60px_80px_80px_120px_120px] gap-3 px-5 py-3.5 items-center">
                   <p className="text-sm text-gray-900 dark:text-white truncate">{u.email}</p>
                   <p className="text-xs text-gray-400 truncate">{u.youtubeChannel ?? "—"}</p>
                   <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 text-right">{u.totalScans}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-right" title={u.totalTokens.toLocaleString("de-DE") + " Tokens"}>{formatTokens(u.totalTokens)}</p>
                   <span className={`text-xs font-semibold px-2 py-0.5 rounded-full w-fit ${TIER_COLORS[u.tier] ?? TIER_COLORS.free}`}>
                     {u.tier}
                   </span>

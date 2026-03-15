@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import Anthropic from "@anthropic-ai/sdk"
 import { getAuthUser, getTierAndMonthlyUsage, MONTHLY_LIMITS } from "@/lib/auth-server"
+import { logTokens } from "@/lib/log-tokens"
 
 const RequestSchema = z.object({
   channelInput: z.string().min(1).max(200),
@@ -156,6 +157,7 @@ Rules:
     return NextResponse.json({ error: `Claude API Fehler: ${msg}` }, { status: 500 })
   }
 
+  void logTokens(user.id, "analyze-competitor", message.usage.input_tokens, message.usage.output_tokens)
   const firstBlock = message.content[0]
   if (!firstBlock || firstBlock.type !== "text") {
     return NextResponse.json({ error: "Unerwartete Antwort von Claude" }, { status: 500 })

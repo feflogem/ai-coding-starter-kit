@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { supabase } from "@/lib/supabase"
+import { PricingModal } from "@/components/PricingModal"
 import type { VideoResult } from "@/app/api/analyze/route"
 import type { User } from "@supabase/supabase-js"
 
@@ -25,6 +26,7 @@ interface ChannelEntry {
   id: string
   name: string
   thumbnail?: string
+  subscriberCount?: number
 }
 
 interface SearchResult {
@@ -56,8 +58,14 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
   const [customFrom, setCustomFrom] = useState("")
   const [customTo, setCustomTo] = useState("")
   const [sortBy, setSortBy] = useState("views")
+  const [maxResults, setMaxResults] = useState("15")
   const [error, setError] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
+  const [pricingOpen, setPricingOpen] = useState(false)
+  const [subsOpen, setSubsOpen] = useState(false)
+  const [subsChannels, setSubsChannels] = useState<{ channelId: string; name: string; thumbnail: string | null; subscriberCount?: number }[]>([])
+  const [subsLoading, setSubsLoading] = useState(false)
+  const [subsError, setSubsError] = useState<string | null>(null)
 
   const atLimit = channels.length >= channelLimit
 
@@ -106,50 +114,90 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
   async function loadFromSupabase(userId: string) {
     const { data: list } = await supabase
       .from("channel_lists")
-      .select("id, channel_list_items(channel_id, channel_name)")
+      .select("id, channel_list_items(channel_id, channel_name, channel_thumbnail)")
       .eq("user_id", userId)
       .order("created_at", { ascending: true })
       .limit(1)
       .single()
 
-    if (list?.channel_list_items?.length) {
-      setChannels(
-        list.channel_list_items.map((i: { channel_id: string; channel_name: string | null }) => ({
-          id: i.channel_id,
-          name: i.channel_name ?? i.channel_id,
-        }))
-      )
-    } else {
-      loadFromLocalStorage()
+    if (!list) {
+      // No list record — logged-in user starts with empty list (don't load localStorage)
+      setChannels([])
+      return
+    }
+
+    const loaded: ChannelEntry[] = (list.channel_list_items ?? []).map(
+      (i: { channel_id: string; channel_name: string | null; channel_thumbnail: string | null }) => ({
+        id: i.channel_id,
+        name: i.channel_name ?? i.channel_id,
+        thumbnail: i.channel_thumbnail ?? undefined,
+      })
+    )
+    setChannels(loaded)
+
+    // Resolve any entries where name looks like a raw channel ID (UCxxx…)
+    const needsResolve = loaded.filter(
+      (e) => /^UC[A-Za-z0-9_-]{20,}$/.test(e.name) || e.name === e.id
+    )
+    if (needsResolve.length === 0) return
+    const { data: { session } } = await supabase.auth.getSession()
+    const resolved = await Promise.all(
+      needsResolve.map(async (e) => {
+        try {
+          const res = await fetch(`/api/validate-channel?q=${encodeURIComponent(e.id)}`, {
+            headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+          })
+          const data = await res.json()
+          if (data.valid) return { ...e, id: data.channelId, name: data.title, thumbnail: data.thumbnail ?? e.thumbnail }
+        } catch { /* keep original */ }
+        return e
+      })
+    )
+    const resolvedMap = new Map(resolved.map((e) => [e.id, e]))
+    // Also try original IDs (in case channelId changed)
+    needsResolve.forEach((orig, idx) => { resolvedMap.set(orig.id, resolved[idx]) })
+    const updated = loaded.map((e) => resolvedMap.get(e.id) ?? e)
+    setChannels(updated)
+    // Persist resolved names to DB
+    if (updated.some((e, i) => e.name !== loaded[i].name)) {
+      // Re-save with real names using service call pattern
+      const listId = list.id
+      await supabase.from("channel_list_items").delete().eq("list_id", listId)
+      if (updated.length > 0) {
+        await supabase.from("channel_list_items").insert(
+          updated.map((e) => ({ list_id: listId, channel_id: e.id, channel_name: e.name, channel_thumbnail: e.thumbnail ?? null }))
+        )
+      }
     }
   }
 
-  async function saveToSupabase() {
+  async function saveToSupabase(list?: ChannelEntry[]) {
     if (!user) return
+    const toSave = list ?? channels
     setSaveStatus("saving")
 
-    let { data: list } = await supabase
+    let { data: listRow } = await supabase
       .from("channel_lists")
       .select("id")
       .eq("user_id", user.id)
       .limit(1)
       .single()
 
-    if (!list) {
+    if (!listRow) {
       const { data: newList } = await supabase
         .from("channel_lists")
         .insert({ user_id: user.id, name: "Meine Liste" })
         .select("id")
         .single()
-      list = newList
+      listRow = newList
     }
 
-    if (!list) { setSaveStatus("idle"); return }
+    if (!listRow) { setSaveStatus("idle"); return }
 
-    await supabase.from("channel_list_items").delete().eq("list_id", list.id)
-    if (channels.length > 0) {
+    await supabase.from("channel_list_items").delete().eq("list_id", listRow.id)
+    if (toSave.length > 0) {
       await supabase.from("channel_list_items").insert(
-        channels.map((e) => ({ list_id: list!.id, channel_id: e.id, channel_name: e.name }))
+        toSave.map((e) => ({ list_id: listRow!.id, channel_id: e.id, channel_name: e.name, channel_thumbnail: e.thumbnail ?? null }))
       )
     }
 
@@ -168,7 +216,9 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
   }
 
   function removeChannel(index: number) {
-    persist(channels.filter((_, i) => i !== index))
+    const updated = channels.filter((_, i) => i !== index)
+    persist(updated)
+    if (user) saveToSupabase(updated)
   }
 
   async function handleSearch() {
@@ -252,7 +302,7 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
           "Content-Type": "application/json",
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
-        body: JSON.stringify({ channelIds, minViews: parsedMinViews, dayRange: analyzeDayRange, sortBy, publishedAfter, publishedBefore }),
+        body: JSON.stringify({ channelIds, minViews: parsedMinViews, dayRange: analyzeDayRange, sortBy, maxResults: Math.max(1, parseInt(maxResults) || 15), publishedAfter, publishedBefore }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? "Ein Fehler ist aufgetreten."); return }
@@ -278,6 +328,30 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
     }
   }
 
+  async function loadSubscriptions() {
+    if (subsOpen) { setSubsOpen(false); return }
+    setSubsOpen(true)
+    if (subsChannels.length > 0) return
+    setSubsLoading(true)
+    setSubsError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch("/api/subscriptions", {
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setSubsError(data.code ?? data.error ?? "Fehler")
+      } else {
+        setSubsChannels(data.channels ?? [])
+      }
+    } catch {
+      setSubsError("Netzwerkfehler")
+    } finally {
+      setSubsLoading(false)
+    }
+  }
+
   const directEntry: ChannelEntry | null =
     query.trim() && isDirectInput(query.trim())
       ? { id: extractHandle(query.trim()), name: extractHandle(query.trim()) }
@@ -286,146 +360,8 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
 
-      {/* ── Gespeicherte Channels ── */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-            Gespeicherte Channels{" "}
-            <span className="font-normal normal-case tracking-normal">({channels.length}/{channelLimit})</span>
-          </Label>
-          {user && channels.length > 0 && (
-            <button
-              type="button"
-              onClick={saveToSupabase}
-              className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-            >
-              {saveStatus === "saving" ? "Speichern..." : saveStatus === "saved" ? "✓ Gespeichert" : "Liste speichern"}
-            </button>
-          )}
-        </div>
-
-        {channels.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-200 dark:border-gray-700 px-4 py-5 text-center">
-            <p className="text-sm text-gray-400 dark:text-gray-500">Noch keine Channels gespeichert.</p>
-            <p className="text-xs text-gray-300 dark:text-gray-600 mt-0.5">Suche unten nach Channels und füge sie hinzu.</p>
-          </div>
-        ) : (
-          <div className="rounded-lg border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
-            {channels.map((ch, index) => (
-              <div key={ch.id} className="flex items-center gap-3 px-3 py-2.5 group bg-white dark:bg-gray-950 first:rounded-t-lg last:rounded-b-lg">
-                {ch.thumbnail && (
-                  <img src={ch.thumbnail} alt="" className="w-7 h-7 rounded-full shrink-0" />
-                )}
-                <p className="flex-1 text-sm font-medium text-gray-900 dark:text-white truncate">{ch.name}</p>
-                <button
-                  type="button"
-                  onClick={() => removeChannel(index)}
-                  className="text-gray-300 dark:text-gray-700 hover:text-red-400 dark:hover:text-red-500 text-lg leading-none shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label="Entfernen"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!user && atLimit && (
-          <p className="text-xs text-gray-400 dark:text-gray-500">
-            Maximal 3 Channels ohne Anmeldung.{" "}
-            <Link href="/" className="underline hover:text-gray-600 dark:hover:text-gray-300">Anmelden</Link> für bis zu 40.
-          </p>
-        )}
-      </div>
-
-      {/* ── Channel hinzufügen ── */}
-      {!atLimit && (
-        <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-gray-800">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-            Channel hinzufügen
-          </Label>
-
-          <div className="flex gap-2">
-            <Input
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setSearched(false); setSearchResults([]) }}
-              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleSearch())}
-              placeholder="Channel suchen oder URL einfügen"
-              className="bg-white dark:bg-gray-950 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 text-sm"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={searching || !query.trim()}
-              onClick={handleSearch}
-              className="shrink-0"
-            >
-              {searching ? "..." : "Suchen"}
-            </Button>
-          </div>
-
-          {/* Direct-add for URL/handle */}
-          {directEntry && !searched && (
-            <div className="flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-700 dark:text-gray-300 truncate font-mono">{directEntry.id}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">Direkt hinzufügen</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => { addChannel(directEntry); setQuery("") }}
-                disabled={channels.some((c) => c.id === directEntry.id)}
-                className="text-sm px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 transition-colors"
-              >
-                {channels.some((c) => c.id === directEntry.id) ? "✓" : "+ Hinzufügen"}
-              </button>
-            </div>
-          )}
-
-          {/* Search results */}
-          {searched && searchResults.length === 0 && !searching && (
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-gray-400 dark:text-gray-500">Keine Channels gefunden.</p>
-              <button type="button" onClick={() => { setSearched(false); setQuery("") }} className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Schließen</button>
-            </div>
-          )}
-
-          {searchResults.length > 0 && (
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800 max-h-64 overflow-y-auto">
-              <div className="sticky top-0 z-10 flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-900 rounded-t-lg border-b border-gray-200 dark:border-gray-800">
-                <p className="text-xs text-gray-400 dark:text-gray-500">{searchResults.length} Ergebnisse</p>
-                <button type="button" onClick={() => { setSearchResults([]); setSearched(false); setQuery("") }} className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Schließen ×</button>
-              </div>
-              {searchResults.map((ch) => {
-                const isAdded = channels.some((c) => c.id === ch.channelId)
-                return (
-                  <div key={ch.channelId} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-900">
-                    {ch.thumbnail && (
-                      <img src={ch.thumbnail} alt="" className="w-8 h-8 rounded-full shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{ch.title}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">{formatSubs(ch.subscriberCount)} Abonnenten</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => addChannel({ id: ch.channelId, name: ch.title, thumbnail: ch.thumbnail })}
-                      disabled={isAdded || atLimit}
-                      className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 transition-colors text-base"
-                    >
-                      {isAdded ? "✓" : "+"}
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* ── Filter ── */}
-      <div className="pt-4 border-t border-gray-200 dark:border-gray-800 space-y-3">
+      <div className="space-y-3">
         <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Filter</p>
         <div className="flex flex-col gap-3">
           <div className="space-y-2">
@@ -495,6 +431,19 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="maxResults" className="text-gray-700 dark:text-gray-300">Max. Ergebnisse</Label>
+            <Input
+              id="maxResults"
+              type="number"
+              min="1"
+              max="500"
+              value={maxResults}
+              onChange={(e) => setMaxResults(e.target.value)}
+              className="bg-white dark:bg-gray-950 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
+            />
+          </div>
         </div>
       </div>
 
@@ -508,6 +457,306 @@ export function ChannelInputForm({ onResults, onLoading }: ChannelInputFormProps
       >
         Analysieren
       </Button>
+
+      {/* ── Gespeicherte Channels ── */}
+      <div className="pt-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            Gespeicherte Channels{" "}
+            <span className="font-normal normal-case tracking-normal">({channels.length}/{channelLimit})</span>
+          </Label>
+          <div className="flex items-center gap-3">
+            {user && (
+              <button
+                type="button"
+                onClick={loadSubscriptions}
+                className={`text-sm transition-colors ${subsOpen ? "text-violet-600 dark:text-violet-400" : "text-violet-500 hover:text-violet-700 dark:hover:text-violet-300"}`}
+              >
+                {subsOpen ? "Abos schließen" : "Aus Abos laden"}
+              </button>
+            )}
+            {user && (
+              <button
+                type="button"
+                onClick={() => saveToSupabase()}
+                className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              >
+                {saveStatus === "saving" ? "Speichern..." : saveStatus === "saved" ? "✓ Gespeichert" : "Liste speichern"}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {channels.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-200 dark:border-gray-700 px-4 py-5 text-center">
+            <p className="text-sm text-gray-400 dark:text-gray-500">Noch keine Channels gespeichert.</p>
+            <p className="text-xs text-gray-300 dark:text-gray-600 mt-0.5">Suche unten nach Channels und füge sie hinzu.</p>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
+            {channels.map((ch, index) => (
+              <div key={ch.id} className="flex items-center gap-3 px-3 py-2.5 group bg-white dark:bg-gray-950 first:rounded-t-lg last:rounded-b-lg">
+                {ch.thumbnail && (
+                  <img src={ch.thumbnail} alt="" className="w-7 h-7 rounded-full shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{ch.name}</p>
+                  {ch.subscriberCount !== undefined && (
+                    <p className="text-xs text-gray-400 dark:text-gray-500">{formatSubs(ch.subscriberCount)} Abos</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeChannel(index)}
+                  className="text-gray-300 dark:text-gray-700 hover:text-red-400 dark:hover:text-red-500 text-lg leading-none shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Entfernen"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+
+        {atLimit && (
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            {!user ? (
+              <>Maximal 3 Channels ohne Anmeldung.{" "}
+                <Link href="/" className="underline hover:text-gray-600 dark:hover:text-gray-300">Anmelden</Link> für bis zu 40.</>
+            ) : (
+              <>Channel-Limit erreicht.{" "}
+                <button type="button" onClick={() => setPricingOpen(true)} className="underline hover:text-gray-600 dark:hover:text-gray-300">Upgrade</button> für mehr.</>
+            )}
+          </p>
+        )}
+      </div>
+
+      {/* ── Channel hinzufügen ── */}
+      {!atLimit && (
+        <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-gray-800">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            Channel hinzufügen
+          </Label>
+
+          <div className="flex gap-2">
+            <Input
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setSearched(false); setSearchResults([]) }}
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleSearch())}
+              placeholder="Channel suchen oder URL einfügen"
+              className="bg-white dark:bg-gray-950 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 text-sm"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={searching || !query.trim()}
+              onClick={handleSearch}
+              className="shrink-0"
+            >
+              {searching ? "..." : "Suchen"}
+            </Button>
+          </div>
+
+          {/* Direct-add for URL/handle */}
+          {directEntry && !searched && (
+            <div className="flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-700 dark:text-gray-300 truncate font-mono">{directEntry.id}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Direkt hinzufügen</p>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  const { data: { session } } = await supabase.auth.getSession()
+                  try {
+                    const res = await fetch(`/api/validate-channel?q=${encodeURIComponent(directEntry.id)}`, {
+                      headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+                    })
+                    const data = await res.json()
+                    if (data.valid) {
+                      addChannel({ id: data.channelId, name: data.title, thumbnail: data.thumbnail })
+                    } else {
+                      addChannel(directEntry)
+                    }
+                  } catch {
+                    addChannel(directEntry)
+                  }
+                  setQuery("")
+                }}
+                disabled={channels.some((c) => c.id === directEntry.id)}
+                className="text-sm px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 transition-colors"
+              >
+                {channels.some((c) => c.id === directEntry.id) ? "✓" : "+ Hinzufügen"}
+              </button>
+            </div>
+          )}
+
+          {/* Search results */}
+          {searched && searchResults.length === 0 && !searching && (
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-gray-400 dark:text-gray-500">Keine Channels gefunden.</p>
+              <button type="button" onClick={() => { setSearched(false); setQuery("") }} className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Schließen</button>
+            </div>
+          )}
+
+          {searchResults.length > 0 && (
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800 max-h-64 overflow-y-auto">
+              <div className="sticky top-0 z-10 flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-900 rounded-t-lg border-b border-gray-200 dark:border-gray-800">
+                <p className="text-xs text-gray-400 dark:text-gray-500">{searchResults.length} Ergebnisse</p>
+                <button type="button" onClick={() => { setSearchResults([]); setSearched(false); setQuery("") }} className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Schließen ×</button>
+              </div>
+              {searchResults.map((ch) => {
+                const isAdded = channels.some((c) => c.id === ch.channelId)
+                return (
+                  <div key={ch.channelId} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-900">
+                    {ch.thumbnail && (
+                      <img src={ch.thumbnail} alt="" className="w-8 h-8 rounded-full shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{ch.title}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">{formatSubs(ch.subscriberCount)} Abonnenten</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => addChannel({ id: ch.channelId, name: ch.title, thumbnail: ch.thumbnail, subscriberCount: ch.subscriberCount })}
+                      disabled={isAdded || atLimit}
+                      className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 transition-colors text-base"
+                    >
+                      {isAdded ? "✓" : "+"}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      <PricingModal open={pricingOpen} onClose={() => setPricingOpen(false)} />
+
+      {/* Subscriptions modal */}
+      {subsOpen && user && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/40"
+            onClick={() => setSubsOpen(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-xl shadow-2xl flex flex-col pointer-events-auto" style={{ maxHeight: "70vh" }}>
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Abonnements</p>
+                  {!subsLoading && !subsError && subsChannels.length > 0 && (
+                    <p className="text-xs text-gray-400 mt-0.5">{subsChannels.length} Channels · Klick zum Hinzufügen</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  {!subsLoading && !subsError && subsChannels.length > 0 && !atLimit && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const existingIds = new Set(channels.map((c) => c.id))
+                        const toAdd = subsChannels
+                          .filter((ch) => !existingIds.has(ch.channelId))
+                          .slice(0, channelLimit - channels.length)
+                          .map((ch) => ({ id: ch.channelId, name: ch.name, thumbnail: ch.thumbnail ?? undefined, subscriberCount: ch.subscriberCount }))
+                        if (toAdd.length === 0) return
+                        const updated = [...channels, ...toAdd]
+                        persist(updated)
+                        if (user) saveToSupabase(updated)
+                      }}
+                      className="text-xs text-violet-500 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
+                    >
+                      Alle auswählen
+                    </button>
+                  )}
+                  <button type="button" onClick={() => setSubsOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors text-xl leading-none">×</button>
+                </div>
+              </div>
+              {/* Upgrade hint when at limit */}
+              {atLimit && (
+                <div className="px-5 py-2.5 bg-violet-50 dark:bg-violet-950/30 border-b border-violet-100 dark:border-violet-900/50 flex items-center justify-between gap-3">
+                  <p className="text-xs text-violet-700 dark:text-violet-300">Limit erreicht. Mehr Channels mit einem Upgrade.</p>
+                  <button type="button" onClick={() => { setSubsOpen(false); setPricingOpen(true) }} className="text-xs font-medium text-violet-600 dark:text-violet-400 hover:underline shrink-0">Upgrade →</button>
+                </div>
+              )}
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto">
+                {subsLoading && (
+                  <div className="flex items-center justify-center py-16">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-5 h-5 rounded-full border-2 border-gray-200 dark:border-gray-700 border-t-violet-600 animate-spin" />
+                      <p className="text-xs text-gray-400">Lade Abonnements...</p>
+                    </div>
+                  </div>
+                )}
+                {!subsLoading && subsError === "no_channel" && (
+                  <div className="p-6 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Kein YouTube-Channel hinterlegt.{" "}
+                    <Link href="/profil" className="text-violet-500 underline hover:text-violet-700" onClick={() => setSubsOpen(false)}>Zum Profil</Link>{" "}
+                    um deinen Channel einzutragen.
+                  </div>
+                )}
+                {!subsLoading && subsError === "private" && (
+                  <div className="p-6 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Deine Abonnements sind auf YouTube nicht öffentlich. Gehe auf YouTube → Einstellungen → Datenschutz → Abonnements auf &quot;Öffentlich&quot; stellen.
+                  </div>
+                )}
+                {!subsLoading && subsError && subsError !== "no_channel" && subsError !== "private" && (
+                  <p className="p-6 text-sm text-red-500 dark:text-red-400">{subsError}</p>
+                )}
+                {!subsLoading && !subsError && subsChannels.length === 0 && (
+                  <p className="p-6 text-sm text-gray-400 dark:text-gray-500">Keine Abonnements gefunden.</p>
+                )}
+                {!subsLoading && !subsError && subsChannels.length > 0 && (
+                  <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {subsChannels.map((ch) => {
+                      const isAdded = channels.some((c) => c.id === ch.channelId)
+                      return (
+                        <div key={ch.channelId} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                          {ch.thumbnail
+                            ? <img src={ch.thumbnail} alt="" className="w-9 h-9 rounded-full shrink-0" />
+                            : <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700 shrink-0" />
+                          }
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{ch.name}</p>
+                            {ch.subscriberCount !== undefined && ch.subscriberCount > 0 && (
+                              <p className="text-xs text-gray-400 dark:text-gray-500">{formatSubs(ch.subscriberCount)} Abos</p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isAdded) {
+                                const idx = channels.findIndex((c) => c.id === ch.channelId)
+                                if (idx !== -1) removeChannel(idx)
+                              } else {
+                                addChannel({ id: ch.channelId, name: ch.name, thumbnail: ch.thumbnail ?? undefined, subscriberCount: ch.subscriberCount })
+                              }
+                            }}
+                            disabled={!isAdded && atLimit}
+                            className={`w-8 h-8 flex items-center justify-center rounded-full border shrink-0 transition-colors text-base ${
+                              isAdded
+                                ? "border-violet-500 bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-400 hover:text-red-500"
+                                : "border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                            }`}
+                          >
+                            {isAdded ? "✓" : "+"}
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </form>
   )
 }

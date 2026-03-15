@@ -39,7 +39,16 @@ function formatViews(n: number) {
 export default function VerlaufPage() {
   const [scans, setScans] = useState<Scan[]>([])
   const [loading, setLoading] = useState(true)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const router = useRouter()
+
+  async function deleteScan(e: React.MouseEvent, scanId: string) {
+    e.stopPropagation()
+    setDeletingId(scanId)
+    await supabase.from("scans").delete().eq("id", scanId)
+    setScans((prev) => prev.filter((s) => s.id !== scanId))
+    setDeletingId(null)
+  }
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -85,12 +94,13 @@ export default function VerlaufPage() {
         ) : (
           <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
             {/* Header */}
-            <div className="grid grid-cols-[1fr_80px_80px_70px_140px] gap-4 px-5 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+            <div className="grid grid-cols-[1fr_80px_80px_70px_140px_32px] gap-4 px-5 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Channels</span>
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Zeitraum</span>
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Min. Views</span>
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Videos</span>
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Datum</span>
+              <span />
             </div>
 
             {/* Rows */}
@@ -100,10 +110,10 @@ export default function VerlaufPage() {
                   ? scan.channels.map((c) => c.name ?? c.id).join(", ")
                   : "—"
                 return (
-                  <button
+                  <div
                     key={scan.id}
                     onClick={() => router.push(`/verlauf/${scan.id}`)}
-                    className="w-full grid grid-cols-[1fr_80px_80px_70px_140px] gap-4 px-5 py-3.5 items-center hover:bg-violet-50 dark:hover:bg-violet-950/20 transition-colors text-left group"
+                    className="grid grid-cols-[1fr_80px_80px_70px_140px_32px] gap-4 px-5 py-3.5 items-center hover:bg-violet-50 dark:hover:bg-violet-950/20 transition-colors group cursor-pointer"
                   >
                     <p className="text-sm text-gray-900 dark:text-white truncate group-hover:text-violet-700 dark:group-hover:text-violet-300 transition-colors">
                       {channelNames}
@@ -112,7 +122,23 @@ export default function VerlaufPage() {
                     <p className="text-sm text-gray-500 dark:text-gray-400 text-right">{formatViews(scan.min_views)}</p>
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 text-right">{scan.video_count}</p>
                     <p className="text-xs text-gray-400 text-right">{formatDate(scan.created_at)}</p>
-                  </button>
+                    <button
+                      onClick={(e) => deleteScan(e, scan.id)}
+                      disabled={deletingId === scan.id}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-7 h-7 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-30"
+                      title="Analyse löschen"
+                    >
+                      {deletingId === scan.id ? (
+                        <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12a8 8 0 018-8V4" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 )
               })}
             </div>

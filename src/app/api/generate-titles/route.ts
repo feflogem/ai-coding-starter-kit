@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import Anthropic from "@anthropic-ai/sdk"
 import { getAuthUser } from "@/lib/auth-server"
+import { logTokens } from "@/lib/log-tokens"
 
 const InspirationVideoSchema = z.object({
   videoId: z.string(),
@@ -215,6 +216,7 @@ Reply ONLY with a JSON array, no other text:
   }
 
   // Safe access to content
+  void logTokens(user.id, "generate-titles", message.usage.input_tokens, message.usage.output_tokens)
   const firstBlock = message.content[0]
   if (!firstBlock || firstBlock.type !== "text") {
     return NextResponse.json({ error: "Unerwartete Antwort von Claude" }, { status: 500 })

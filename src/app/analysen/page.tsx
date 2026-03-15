@@ -69,7 +69,7 @@ export default function AnalysenPage() {
           <div className="flex gap-6 items-start">
             {/* Left: Input panel (sticky) */}
             <div className="w-80 shrink-0">
-              <div className="sticky top-6">
+              <div className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto">
                 <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">
                   Kanal-Analyse
                 </p>
@@ -106,9 +106,6 @@ export default function AnalysenPage() {
 
               {!isLoading && videos.length > 0 && (
                 <div className="animate-in fade-in duration-300">
-                  {summary && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{summary}</p>
-                  )}
                   <VideoTable
                     videos={videos}
                     isLoading={false}

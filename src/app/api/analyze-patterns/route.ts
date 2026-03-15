@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import Anthropic from "@anthropic-ai/sdk"
 import { getAuthUser } from "@/lib/auth-server"
+import { logTokens } from "@/lib/log-tokens"
 
 const RequestSchema = z.object({
   videos: z.array(z.object({
@@ -77,6 +78,7 @@ Rules:
     return NextResponse.json({ error: `Claude API Fehler: ${msg}` }, { status: 500 })
   }
 
+  void logTokens(user.id, "analyze-patterns", message.usage.input_tokens, message.usage.output_tokens)
   const firstBlock = message.content[0]
   if (!firstBlock || firstBlock.type !== "text") {
     return NextResponse.json({ error: "Unerwartete Antwort von Claude" }, { status: 500 })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import Anthropic from "@anthropic-ai/sdk"
 import { createClient } from "@supabase/supabase-js"
 import { getAuthUser } from "@/lib/auth-server"
+import { logTokens } from "@/lib/log-tokens"
 
 interface Message {
   role: "user" | "assistant"
@@ -77,6 +78,7 @@ Beantworte Fragen des Nutzers konkret und actionable. Fokus auf: Wie kann er die
     })
 
     const text = response.content[0]?.type === "text" ? response.content[0].text : ""
+    void logTokens(user.id, "chat-competitor", response.usage.input_tokens, response.usage.output_tokens)
     return NextResponse.json({ reply: text })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

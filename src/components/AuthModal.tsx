@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -12,6 +13,8 @@ interface AuthModalProps {
   onClose: () => void
   defaultMode?: "login" | "signup"
 }
+
+type AuthMode = "login" | "signup" | "reset"
 
 function GoogleIcon() {
   return (
@@ -25,13 +28,15 @@ function GoogleIcon() {
 }
 
 export function AuthModal({ open, onClose, defaultMode = "signup" }: AuthModalProps) {
-  const [mode, setMode] = useState<"login" | "signup">(defaultMode)
+  const router = useRouter()
+  const [mode, setMode] = useState<AuthMode>(defaultMode)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [agbAccepted, setAgbAccepted] = useState(false)
 
   // Reset state whenever modal is opened or defaultMode changes
   useEffect(() => {
@@ -39,6 +44,7 @@ export function AuthModal({ open, onClose, defaultMode = "signup" }: AuthModalPr
       setMode(defaultMode)
       setError(null)
       setSuccess(null)
+      setAgbAccepted(false)
     }
   }, [open, defaultMode])
 
@@ -64,9 +70,13 @@ export function AuthModal({ open, onClose, defaultMode = "signup" }: AuthModalPr
     if (mode === "login") {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) setError("E-Mail oder Passwort falsch.")
-      else onClose()
+      else { onClose(); router.push("/analysen") }
     } else {
-      const { data, error } = await supabase.auth.signUp({ email, password })
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/analysen` },
+      })
       if (error) {
         if (error.message.toLowerCase().includes("already registered") || error.status === 400) {
           setMode("login")
@@ -82,13 +92,27 @@ export function AuthModal({ open, onClose, defaultMode = "signup" }: AuthModalPr
         setSuccess("Bestätigungsmail gesendet — bitte E-Mail prüfen.")
       } else if (data.session) {
         onClose()
+        router.push("/analysen")
       }
     }
 
     setLoading(false)
   }
 
-  function switchMode(newMode: "login" | "signup") {
+  async function handleReset(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    setSuccess(null)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    if (error) setError("Fehler beim Senden. Bitte E-Mail prüfen.")
+    else setSuccess("Reset-Link wurde gesendet — bitte E-Mail prüfen.")
+    setLoading(false)
+  }
+
+  function switchMode(newMode: AuthMode) {
     setMode(newMode)
     setError(null)
     setSuccess(null)
@@ -102,85 +126,137 @@ export function AuthModal({ open, onClose, defaultMode = "signup" }: AuthModalPr
           <div className="text-center space-y-1">
             <p className="text-xs font-semibold tracking-widest uppercase text-gray-400">Viral Tracker</p>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              {mode === "login" ? "Willkommen zurück" : "Kostenlos starten"}
+              {mode === "login" ? "Willkommen zurück" : mode === "signup" ? "Kostenlos starten" : "Passwort zurücksetzen"}
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {mode === "login" ? "Meld dich in deinem Konto an." : "Kostenlos bis zu 3 Channels · Keine Kreditkarte."}
+              {mode === "login" ? "Meld dich in deinem Konto an." : mode === "signup" ? "Kostenlos bis zu 3 Channels · Keine Kreditkarte." : "Wir senden dir einen Reset-Link."}
             </p>
           </div>
 
-          {/* Google */}
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full flex items-center gap-2 border-gray-300 dark:border-gray-700 h-10"
-            onClick={handleGoogleSignIn}
-            disabled={googleLoading}
-          >
-            <GoogleIcon />
-            <span className="text-sm font-medium">
-              {googleLoading ? "Weiterleitung..." : mode === "login" ? "Mit Google anmelden" : "Mit Google registrieren"}
-            </span>
-          </Button>
+          {/* Reset mode */}
+          {mode === "reset" ? (
+            <form onSubmit={handleReset} className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="auth-email-reset" className="text-sm">E-Mail</Label>
+                <Input
+                  id="auth-email-reset"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="deine@email.de"
+                  required
+                  autoFocus
+                />
+              </div>
+              {error && <p className="text-sm text-red-500 dark:text-red-400">{error}</p>}
+              {success && <p className="text-sm text-green-600 dark:text-green-400">{success}</p>}
+              <Button type="submit" className="w-full h-10" disabled={loading}>
+                {loading ? "..." : "Reset-Link senden"}
+              </Button>
+              <p className="text-sm text-center text-gray-500 dark:text-gray-400">
+                <button type="button" onClick={() => switchMode("login")} className="hover:underline">← Zurück zum Login</button>
+              </p>
+            </form>
+          ) : (
+            <>
+              {/* Google */}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full flex items-center gap-2 border-gray-300 dark:border-gray-700 h-10"
+                onClick={handleGoogleSignIn}
+                disabled={googleLoading}
+              >
+                <GoogleIcon />
+                <span className="text-sm font-medium">
+                  {googleLoading ? "Weiterleitung..." : mode === "login" ? "Mit Google anmelden" : "Mit Google registrieren"}
+                </span>
+              </Button>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
-            <span className="text-xs text-gray-400 font-medium">ODER</span>
-            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
-          </div>
+              {/* Divider */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
+                <span className="text-xs text-gray-400 font-medium">ODER</span>
+                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
+              </div>
 
-          {/* Email form */}
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="space-y-1">
-              <Label htmlFor="auth-email" className="text-sm">E-Mail</Label>
-              <Input
-                id="auth-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="deine@email.de"
-                required
-                autoFocus
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="auth-password" className="text-sm">Passwort</Label>
-              <Input
-                id="auth-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mindestens 6 Zeichen"
-                required
-                minLength={6}
-              />
-            </div>
+              {/* Email form */}
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <div className="space-y-1">
+                  <Label htmlFor="auth-email" className="text-sm">E-Mail</Label>
+                  <Input
+                    id="auth-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="deine@email.de"
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="auth-password" className="text-sm">Passwort</Label>
+                    {mode === "login" && (
+                      <button type="button" onClick={() => switchMode("reset")} className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                        Passwort vergessen?
+                      </button>
+                    )}
+                  </div>
+                  <Input
+                    id="auth-password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Mindestens 6 Zeichen"
+                    required
+                    minLength={6}
+                  />
+                </div>
 
-            {error && <p className="text-sm text-red-500 dark:text-red-400">{error}</p>}
-            {success && <p className="text-sm text-green-600 dark:text-green-400">{success}</p>}
+                {mode === "signup" && (
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={agbAccepted}
+                      onChange={(e) => setAgbAccepted(e.target.checked)}
+                      className="mt-0.5 shrink-0 accent-violet-600"
+                    />
+                    <span className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                      Ich akzeptiere die{" "}
+                      <a href="/agb" target="_blank" className="underline hover:text-gray-900 dark:hover:text-white">AGB</a>
+                      {" "}und die{" "}
+                      <a href="/datenschutz" target="_blank" className="underline hover:text-gray-900 dark:hover:text-white">Datenschutzerklärung</a>.
+                    </span>
+                  </label>
+                )}
 
-            <Button type="submit" className="w-full h-10" disabled={loading}>
-              {loading ? "..." : mode === "login" ? "Anmelden" : "Konto erstellen"}
-            </Button>
-          </form>
+                {error && <p className="text-sm text-red-500 dark:text-red-400">{error}</p>}
+                {success && <p className="text-sm text-green-600 dark:text-green-400">{success}</p>}
 
-          {/* Switch mode */}
-          <p className="text-sm text-center text-gray-500 dark:text-gray-400">
-            {mode === "login" ? (
-              <>Noch kein Konto?{" "}
-                <button onClick={() => switchMode("signup")} className="font-medium text-gray-900 dark:text-white hover:underline">
-                  Kostenlos registrieren
-                </button>
-              </>
-            ) : (
-              <>Schon ein Konto?{" "}
-                <button onClick={() => switchMode("login")} className="font-medium text-gray-900 dark:text-white hover:underline">
-                  Anmelden
-                </button>
-              </>
-            )}
-          </p>
+                <Button type="submit" className="w-full h-10" disabled={loading || (mode === "signup" && !agbAccepted)}>
+                  {loading ? "..." : mode === "login" ? "Anmelden" : "Konto erstellen"}
+                </Button>
+              </form>
+
+              {/* Switch mode */}
+              <p className="text-sm text-center text-gray-500 dark:text-gray-400">
+                {mode === "login" ? (
+                  <>Noch kein Konto?{" "}
+                    <button onClick={() => switchMode("signup")} className="font-medium text-gray-900 dark:text-white hover:underline">
+                      Kostenlos registrieren
+                    </button>
+                  </>
+                ) : (
+                  <>Schon ein Konto?{" "}
+                    <button onClick={() => switchMode("login")} className="font-medium text-gray-900 dark:text-white hover:underline">
+                      Anmelden
+                    </button>
+                  </>
+                )}
+              </p>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>

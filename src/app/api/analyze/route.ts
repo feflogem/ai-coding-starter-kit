@@ -7,6 +7,7 @@ const RequestSchema = z.object({
   minViews: z.number().int().min(0).default(50000),
   dayRange: z.number().int().min(1).max(1095).default(30),
   sortBy: z.enum(["views", "date"]).default("views"),
+  maxResults: z.number().int().min(1).max(500).default(15),
   publishedAfter: z.string().optional(),
   publishedBefore: z.string().optional(),
 })
@@ -77,11 +78,18 @@ async function fetchUploadsPlaylistId(
   }
 }
 
+const VIRALITY_DIVISOR = 253
+
 function calcViralityScore(viewCount: number, subscriberCount: number, publishedAt: string): number {
-  if (subscriberCount === 0) return 0
-  const daysSince = (Date.now() - new Date(publishedAt).getTime()) / (1000 * 60 * 60 * 24)
-  const decay = Math.exp(-0.05 * daysSince)
-  return Math.round((viewCount / subscriberCount) * decay * 100) / 100
+  if (subscriberCount === 0 || viewCount === 0) return 0
+  const daysOld = Math.max(1, (Date.now() - new Date(publishedAt).getTime()) / (1000 * 60 * 60 * 24))
+  const ratio = viewCount / subscriberCount
+  // Penalize underperformance: multiply by ratio when views < subs (ratio < 1 → pushes score down quadratically)
+  const outperf = ratio < 1
+    ? Math.log10(ratio + 1) * ratio
+    : Math.log10(ratio + 1)
+  const velocity = Math.sqrt(viewCount / daysOld)
+  return Math.min(100, Math.round(outperf * velocity / VIRALITY_DIVISOR * 1000) / 10)
 }
 
 async function fetchPlaylistVideoIds(playlistId: string, apiKey: string, maxResults = 25): Promise<string[]> {
@@ -147,7 +155,7 @@ export async function POST(request: Request): Promise<NextResponse<AnalyzeRespon
     return NextResponse.json({ error: `Ungültige Anfrage: ${parsed.error.issues[0]?.message}` }, { status: 400 })
   }
 
-  const { channelIds, minViews, dayRange, sortBy, publishedAfter, publishedBefore } = parsed.data
+  const { channelIds, minViews, dayRange, sortBy, maxResults, publishedAfter, publishedBefore } = parsed.data
   const uniqueInputs = [...new Set(channelIds.map((id) => id.trim()).filter(Boolean))]
 
   // Server-side tier + monthly scan limit
@@ -226,7 +234,7 @@ export async function POST(request: Request): Promise<NextResponse<AnalyzeRespon
   })
 
   return NextResponse.json({
-    videos: allVideos,
+    videos: allVideos.slice(0, maxResults),
     totalChannels: uniqueInputs.length - errors.length,
     errors,
   })
