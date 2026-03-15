@@ -42,13 +42,13 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="max-w-4xl mx-auto px-4 pt-16 pb-20 text-center">
         <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-violet-50 dark:bg-violet-950 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800 mb-7">
-          Für YouTube-Creator
+          Für YouTube-Creator & Faceless Channels
         </span>
         <h1 className="text-5xl sm:text-6xl font-bold tracking-tight leading-tight mb-6">
           Finde was viral geht.<br />Bevor es deine Konkurrenz tut.
         </h1>
         <p className="text-xl text-gray-500 dark:text-gray-400 max-w-2xl mx-auto mb-10">
-          Viral Tracker zeigt dir in Sekunden, welche Videos in deiner Nische gerade durch die Decke gehen — und was sie gemeinsam haben. Damit du nicht rätst, sondern weißt.
+          Viral Tracker analysiert die Top-Videos deiner Konkurrenz und generiert daraus Titelideen für deinen Kanal — basierend auf bewiesenen viralen Strukturen, nicht auf Bauchgefühl.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button
@@ -56,7 +56,7 @@ export default function LandingPage() {
             onClick={() => { setModalMode("signup"); setModalOpen(true) }}
             className="text-base px-8 bg-violet-600 hover:bg-violet-700 text-white border-0"
           >
-            Kostenlos ausprobieren
+            Meine Nische analysieren
           </Button>
           <Link href="/anleitung">
             <Button size="lg" variant="outline" className="text-base px-8 w-full sm:w-auto">
@@ -73,7 +73,7 @@ export default function LandingPage() {
           {[
             { value: "< 30 Sek.", label: "bis zum ersten Ergebnis" },
             { value: "bis zu 40", label: "Channels auf einmal analysieren" },
-            { value: "Claude 4", label: "Muster & Titelideen per KI" },
+            { value: "1 Komponente", label: "wird am Originaltitel verändert — nicht mehr" },
           ].map((s) => (
             <div key={s.label}>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{s.value}</p>
@@ -135,22 +135,22 @@ export default function LandingPage() {
               {
                 label: "Recherche",
                 title: "Viral Video Tracker",
-                desc: "Welche Videos deiner Konkurrenz haben in den letzten 7 bis 365 Tagen am meisten Views gemacht? Du siehst es auf einen Blick.",
+                desc: "Welche Videos deiner Konkurrenz haben in den letzten 7 bis 365 Tagen am meisten Views gemacht? Sortiert nach Virality Score — Views ins Verhältnis zur Channelgröße gesetzt. So siehst du, welche Videos wirklich überperformt haben, nicht nur die mit dem größten Kanal dahinter.",
               },
               {
                 label: "KI-Analyse",
                 title: "Muster erkennen",
-                desc: "Claude analysiert automatisch die viralen Titel und zeigt dir, welche Emotionen, Themen und Strukturen wiederholt auftauchen.",
+                desc: "Claude analysiert automatisch die viralen Titel und zeigt dir, welche Emotionen, Themen und Strukturen wiederholt auftauchen — auf einen Blick statt Video für Video.",
               },
               {
                 label: "KI-Generierung",
                 title: "Titel Generator",
-                desc: "Auf Basis der viralen Muster generiert Claude Titelvorschläge, die zu deinem Kanal passen — nicht irgendwelche generischen Ideen.",
+                desc: "Kein generischer KI-Titel. Wir nehmen einen bewiesenen viralen Titel deiner Konkurrenz und tauschen nur eine einzige Komponente aus — Person, Adjektiv oder Thema. Die Struktur ist bereits getestet. Du passt sie nur an.",
               },
               {
                 label: "Deep Dive",
                 title: "Competitor Analyse",
-                desc: "Geh tiefer: Verstehe die gesamte Content-Strategie eines einzelnen Kanals — Angles, Titelmuster, was ihn wirklich erfolgreich macht.",
+                desc: "Geh tiefer: Verstehe die gesamte Content-Strategie eines einzelnen Kanals — Angles, Titelmuster, was ihn wirklich erfolgreich macht. Mit KI-Assistent für Folgefragen.",
               },
             ].map((f) => (
               <div key={f.title} className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
@@ -159,6 +159,32 @@ export default function LandingPage() {
                 <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{f.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 1-Komponenten-Swap Callout */}
+      <section className="max-w-4xl mx-auto px-4 py-16">
+        <div className="bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800 rounded-2xl p-8 sm:p-10">
+          <div className="max-w-2xl">
+            <span className="inline-block text-xs font-semibold tracking-widest uppercase text-violet-500 mb-4">Das Kernprinzip</span>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-gray-900 dark:text-white leading-tight">
+              Nicht erfinden. Übertragen.
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
+              Andere KI-Tools schreiben Titel aus dem Nichts. Viral Tracker macht das Gegenteil: Wir nehmen einen Titel, der bereits bewiesen hat, dass er in deiner Nische funktioniert — und tauschen nur <strong>eine einzige Komponente</strong> aus, damit er zu deinem Kanal passt.
+            </p>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-start gap-3">
+                <span className="text-gray-400 dark:text-gray-500 shrink-0 mt-0.5">Vorlage</span>
+                <span className="text-gray-500 dark:text-gray-400 line-through">"Palace Psychologist Reveals Prince <span className="font-semibold">Louis</span>'s Heartbreaking Diagnosis"</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-violet-500 font-semibold shrink-0 mt-0.5">Ergebnis</span>
+                <span className="text-gray-900 dark:text-white font-medium">"Palace Psychologist Reveals Prince <span className="text-violet-600 dark:text-violet-400 font-bold">Andrew</span>'s Heartbreaking Diagnosis"</span>
+              </div>
+              <p className="text-gray-400 dark:text-gray-500 text-xs pt-1">Eine Person ausgetauscht. Struktur bewährt. Thematisch passend.</p>
+            </div>
           </div>
         </div>
       </section>
@@ -212,13 +238,13 @@ export default function LandingPage() {
             {[
               {
                 name: "Free", price: "0€", period: "für immer",
-                features: ["3 Channels pro Analyse", "KI-Titel Generator", "Muster-Analyse", "Alle Zeitraum-Filter"],
-                cta: "Kostenlos starten", highlight: false,
+                features: ["20 Channels pro Analyse", "KI-Titel Generator", "Muster-Analyse", "Alle Zeitraum-Filter"],
+                cta: "Meine Nische analysieren", highlight: false,
               },
               {
                 name: "Basic", price: "8,99€", period: "/ Monat",
                 features: ["10 Channels pro Analyse", "Competitor Analyse", "KI-Titel Generator", "Muster-Analyse", "Kanalliste speichern"],
-                cta: "Basic wählen", highlight: true,
+                cta: "Jetzt upgraden", highlight: true,
               },
               {
                 name: "Premium", price: "15,99€", period: "/ Monat",
@@ -263,14 +289,14 @@ export default function LandingPage() {
       <section className="max-w-2xl mx-auto px-4 py-24 text-center">
         <h2 className="text-3xl font-bold mb-4">Bereit, smarter zu recherchieren?</h2>
         <p className="text-gray-500 dark:text-gray-400 mb-8">
-          Kein Setup. Keine Kreditkarte. Einfach loslegen.
+          Kein Setup. Keine Kreditkarte. 20 Channels gratis analysieren.
         </p>
         <Button
           size="lg"
           onClick={() => { setModalMode("signup"); setModalOpen(true) }}
           className="text-base px-10 bg-violet-600 hover:bg-violet-700 text-white border-0"
         >
-          Jetzt kostenlos starten
+          Meine Nische analysieren
         </Button>
       </section>
 
